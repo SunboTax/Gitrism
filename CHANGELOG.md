@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1
+
+- Support Git 2.25.1 by falling back to newline-delimited worktree output when `worktree list -z` is unavailable, and cache the detected capability.
+- Preserve worktree paths and decode quoted lock reasons in the compatibility reader.
+- Resolve commit references without requiring the newer `rev-parse --end-of-options` option; option-like references remain rejected.
+- Keep repository status and history available when worktree discovery fails, with an error and retry control in the Worktrees view.
+- Add regression coverage for legacy Git, fallback errors, and recovery in the controller and browser interface.
+- Add the dated preliminary intellectual property review and clarify the project's independent status.
+
 ## 0.1.0
 
 Initial Gitrism release.

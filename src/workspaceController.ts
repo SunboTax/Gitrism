@@ -48,11 +48,13 @@ export class WorkspaceController implements vscode.Disposable {
     if (!git) { this.post({ type: "data", data: null }); return; }
     this.post({ type: "loading", value: true });
     try {
-      const [status, branches, commits, tags, stashes, worktrees, operation] = await Promise.all([
-        git.status(), git.branches(true), git.graph(this.limit + 1, this.options), git.tags(), git.stashes(), git.worktrees(), git.operationState()
+      const [status, branches, commits, tags, stashes, worktreeResult, operation] = await Promise.all([
+        git.status(), git.branches(true), git.graph(this.limit + 1, this.options), git.tags(), git.stashes(),
+        git.worktrees().then(worktrees => ({ worktrees, worktreesError: undefined }), error => ({ worktrees: [], worktreesError: formatError(error) })),
+        git.operationState()
       ]);
       if (generation !== this.generation || request !== this.refreshId) return;
-      this.post({ type: "data", data: { root: git.cwd, name: path.basename(git.cwd), status, branches, commits: commits.slice(0, this.limit), tags, stashes, worktrees, operation,
+      this.post({ type: "data", data: { root: git.cwd, name: path.basename(git.cwd), status, branches, commits: commits.slice(0, this.limit), tags, stashes, ...worktreeResult, operation,
         hasMore: commits.length > this.limit && this.limit < 2000, options: this.options, limit: this.limit } });
     } catch (error) {
       if (generation === this.generation && request === this.refreshId) this.post({ type: "error", message: formatError(error) });

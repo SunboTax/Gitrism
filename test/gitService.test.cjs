@@ -4,14 +4,14 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
-const { GitService } = require('../out/gitService');
+const { GitService, GitError } = require('../out/gitService');
 const { layoutGraph } = require('../resources/graphLayout');
 
 async function fixture(t, author = 'Gitrism Tester') {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitrism-test-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const run = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', env: { ...process.env, GIT_CONFIG_NOSYSTEM:'1' } }).trim();
-  run('init', '-q', '-b', 'main'); run('config', 'user.name', author); run('config', 'user.email', 'gitrism@example.invalid');
+  run('init', '-q'); run('symbolic-ref', 'HEAD', 'refs/heads/main'); run('config', 'user.name', author); run('config', 'user.email', 'gitrism@example.invalid');
   run('config','commit.gpgsign','false'); run('config','tag.gpgsign','false');
   const write = (file, content) => fs.writeFile(path.join(root,file),content);
   const service = new GitService(root);
@@ -89,6 +89,44 @@ test('worktree create/list/remove and refusal to remove dirty worktree', async t
   const list=await f.service.worktrees(); assert.equal(list.length,2); assert.equal(list.find(w=>w.path===directory).branch,'second');
   await fs.writeFile(path.join(directory,'untracked'),'keep'); await assert.rejects(f.service.removeWorktree(directory));
   await fs.unlink(path.join(directory,'untracked')); await f.service.removeWorktree(directory); assert.equal((await f.service.worktrees()).length,1);
+});
+test('legacy worktree output preserves paths, caches unsupported -z and respects locks', async t => {
+  const f=await fixture(t); await initial(f); f.run('branch','second');
+  const directory=path.join(f.root,'中文 "quoted"\\path\nwork tree');
+  await f.service.createWorktree(directory,'second');
+  const reason='中文 "locked"\\reason\nnext\tline'; f.run('worktree','lock','--reason',reason,directory);
+  const reportsLocks=f.run('worktree','list','--porcelain').includes('\nlocked ');
+  const run=f.service.run.bind(f.service); let nullAttempts=0;
+  f.service.run=async(args,...rest)=>{
+    if(args[0]==='worktree'&&args[1]==='list'&&args.includes('-z')) {nullAttempts++;throw new GitError('Git operation failed',"error: unknown switch `z'\nusage: git worktree list [<options>]");}
+    return run(args,...rest);
+  };
+  for(let i=0;i<2;i++) {
+    const worktrees=await f.service.worktrees();assert.equal(worktrees.length,2);
+    const item=worktrees.find(w=>w.path===directory);assert.ok(item);assert.equal(item.branch,'second');assert.equal(item.locked,reportsLocks?reason:undefined);
+  }
+  assert.equal(nullAttempts,1);
+  await assert.rejects(f.service.removeWorktree(directory));
+  f.run('worktree','unlock',directory); await f.service.removeWorktree(directory);
+  assert.equal((await f.service.worktrees()).length,1);
+});
+test('legacy quoted lock reasons decode UTF-8 octal bytes and control characters', () => {
+  const git=new GitService('/repo');
+  git.run=async args=>{
+    if(args.includes('-z'))throw new GitError('Git operation failed',"error: unknown switch `z'");
+    return 'worktree /repo\nHEAD '+ 'a'.repeat(40)+'\nbranch refs/heads/main\n'+String.raw`locked "\344\270\255\346\226\207 \"locked\"\\reason\nnext\tline"`+'\n\n';
+  };
+  return git.worktrees().then(items=>assert.equal(items[0].locked,'中文 "locked"\\reason\nnext\tline'));
+});
+test('worktree failures other than unsupported -z remain visible', async t => {
+  const f=await fixture(t); let attempts=0;
+  f.service.run=async()=>{attempts++;throw new GitError('Git operation failed','fatal: permission denied');};
+  await assert.rejects(f.service.worktrees(),e=>e.detail==='fatal: permission denied');assert.equal(attempts,1);
+  f.service.run=async args=>{
+    if(args.includes('-z'))throw new GitError('Git operation failed',"error: unknown switch `z'");
+    throw new GitError('Git operation failed','fatal: fallback cannot read repository');
+  };
+  await assert.rejects(f.service.worktrees(),e=>e.detail==='fatal: fallback cannot read repository');
 });
 test('merge conflicts surface operation state and can be aborted', async t => {
   const f=await fixture(t); await initial(f); await f.service.createBranch('conflict');

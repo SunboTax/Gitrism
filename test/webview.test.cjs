@@ -70,6 +70,14 @@ test('browser: CSP, graph/details, tabs, draft persistence, searches, timeline a
   await click('[data-tab="graph"]');await evaluate("document.getElementById('search-by').value='author';document.getElementById('search').value='Chen'");await click('[data-action="search"]');
   await until("sent.some(m=>m.type==='search'&&m.searchBy==='author'&&m.query==='Chen')");
   for(const tab of ['branches','tags','stashes','worktrees','compare']){await click('[data-tab="'+tab+'"]');assert.ok(await evaluate("document.querySelector('.content h2')?.textContent"));}
+  await click('[data-tab="worktrees"]');
+  await evaluate("fixture.worktreesError='Cannot read <img src=x onerror=alert(1)> worktrees';deliver({type:'data',data:fixture})");
+  assert.equal(await evaluate("document.querySelector('.content strong')?.textContent"),'无法读取 Worktrees');
+  assert.equal(await evaluate("document.querySelectorAll('img').length"),0);
+  assert.equal(await evaluate("document.querySelector('[data-action=createWorktree]')"),null);
+  await click('[data-tab="graph"]');assert.equal(await evaluate("document.querySelectorAll('.commit-row').length"),4);
+  await evaluate("delete fixture.worktreesError;deliver({type:'data',data:fixture})");await click('[data-tab="worktrees"]');
+  assert.equal(await evaluate("document.querySelectorAll('.card').length"),2);await click('[data-tab="compare"]');
   await evaluate("document.getElementById('compare-from').value='main';document.getElementById('compare-to').value='feature/graph'");await click('[data-action="compare"]');await until("document.querySelector('.comparison-summary')!==null");
   await click('[data-tab="timeline"]');await evaluate("document.getElementById('timeline-file').value='src/app.ts'");await click('[data-action="timelineSearch"]');await until("document.querySelectorAll('.timeline-list .timeline-commit').length===3");
   await click('[data-tab="graph"]');assert.equal(await evaluate("document.querySelectorAll('.commit-row').length"),4);

@@ -1,0 +1,600 @@
+{
+  "review_date": "2026-10-05",
+  "timezone": "Asia/Shanghai",
+  "type": "Preliminary engineering and public-record review; not legal clearance",
+  "repository_observed": {
+    "isPrivate": false,
+    "nameWithOwner": "SunboTax/Gitrism",
+    "url": "https://github.com/SunboTax/Gitrism"
+  },
+  "baseline": {
+    "review_date": "2026-10-05",
+    "timezone": "Asia/Shanghai",
+    "root_commit": "8908cbe05c4d151a25cc5bc3c4816767d5b85cc2",
+    "release_vsix_sha256": "0005f932f9a2032e973661788b3730e06b58c47121f95ac92c3ef9b616912ad4",
+    "history_bundle_sha256": "0f1e85493e13994a2d8d918863bcea2f28e01daea6bd4b076d66db228739a127",
+    "backup_metadata": {
+      "created": "2026-10-05T07:49:13.311705+00:00",
+      "local_head": "0f360d00580dffa2a6b0b8c16aa20257cdd3f91b",
+      "remote_main": "79cd6d76e3a8faaaf073257aa8c58e24a5c35d65",
+      "repository": "SunboTax/git-atlas"
+    },
+    "tracked_file_sha256": {
+      ".gitignore": "39eb04940d09876a7e709d5700f57b23221575ed9a5bde479020543ee4b01bad",
+      ".vscode/launch.json": "17cc3e954e55332ae19e2c54032c5ef10f8f90389ca1d9e5cec9e613c9fd3e27",
+      ".vscodeignore": "a0d4ed1e6a122eb639f2ecc283ba8e58b90a4f29b4050cd900ebce88d8b80039",
+      "CHANGELOG.md": "f3e7ef746150bbc1163eb146b212896585a268815a67e1022bc42f40c98c159f",
+      "LICENSE": "3eea15b09b1a1423001d4d53b8a8417e810f67e978650e9d1441f57653bdd30d",
+      "README.md": "e88de20cb2fc0d71f7ec460001b0abad0e1aa3fa82a5f43161bb1a73d83b8807",
+      "docs/feature-scope.md": "95b9079847f962f90341a452617c1015293abc11377407ee67b5f55446501d50",
+      "package-lock.json": "b553e752f1b1a100dced34d212bb94628007cc5507ae0dbdfc1f181f92492d46",
+      "package.json": "1eef6cc4254e427ef0e01bc465cb95efd27c4805cc157f7566a1385d28d7feb8",
+      "resources/gitrism.svg": "b74d5b308753cf10e255d592296a5de662f101860dd6f097370283971d2f023f",
+      "resources/graphLayout.js": "d46aa0cab4925c1396686af0ab6bc11ad3155f068318ba6fc1a14794a6c4d1a6",
+      "resources/timeline.css": "5cabcfa2fa557b21b8509d7b55f645dce68ff2f87eb7a51514dc7dc873821f01",
+      "resources/workspace.css": "35f90bd8331cf32d8727d6b40cba63cff279742b888f5d1fdc48c7cabeac0c47",
+      "resources/workspace.js": "db85a9e7d77e3cba2478818fa820208a699e5ab91211986b78f644872d8693e1",
+      "src/commitGraphPanel.ts": "9724d4b6004701a7fed7b1537ac8f220b018f5c3c95c7faa490ade5004e022d6",
+      "src/extension.ts": "cdd29276f5f04b5c12689b7e61c99e016c8dbabe4c899cb9e86ff6d871b4b0f6",
+      "src/gitService.ts": "609df1a2ca1482208275f357e7c6c226be25ae2d67ad91f7c8b75c618c4a9abf",
+      "src/gitrismPanelView.ts": "449df10f8b7ecc2b0d731518314d7ff44520628f705be12c11caeae5075c8c30",
+      "src/revisionProvider.ts": "89e7c21d1916c36621bb8cd3aa323dcbd70daa295ad5286cab74a5d3c87bd047",
+      "src/settingsMigration.ts": "725d3d84dc5c5803543cd92a071707e8d733bc61715877927dacd2c3a1372211",
+      "src/treeProvider.ts": "e6891a0faa78bfd12a60b60ca03150a7667d4614b13f1b38740ac1685746a731",
+      "src/workspaceController.ts": "3f207fae060bc03589b44e968c6d0fc504822fe2aed5128259dd0ad397727e7b",
+      "test/controller.test.cjs": "f284357176c465a80ad8c098b99cb6771e3449febff453480b058b38e0efd67b",
+      "test/gitService.test.cjs": "8dfe4e99e44c160d2ff7e504b4191dea7253ba8c1a2b26a6508f651f83281a6e",
+      "test/rebase.test.cjs": "c66dfd20919bfa424c9d7f8d6a984937f7ab4133ac4ca0479e3765f61b42dfbc",
+      "test/settingsMigration.test.cjs": "50f46cd1a078b7560f6f3108cd8ca6ab4d28c6e04af11f2bd920a7051569c906",
+      "test/webview.test.cjs": "1e264f9454a6f17ebbe1a0e252d7c6c7172a08f7950c4bd4a08bc0603391ee30",
+      "tsconfig.json": "e94f8efbb22dcf57d17e540c48a006fb6f9b8c0e785346786ecc2f7138253bf8"
+    },
+    "snapshot_exact_matches": [
+      "resources/graphLayout.js",
+      "resources/timeline.css",
+      "resources/workspace.css"
+    ]
+  },
+  "trademark_queries": [
+    {
+      "query": "Gitrism",
+      "mode": "Wordmark",
+      "result": "No results found",
+      "source": "https://tmsearch.uspto.gov/",
+      "endpoint_statuses_in_capture": [
+        200,
+        200,
+        200
+      ],
+      "capture_file": "uspto-single-word-queries-action.json",
+      "capture_sha256": "08709c72f78327e60c284e876f725da4572180b0731f0b938d0be1e2be9cf0b3"
+    },
+    {
+      "query": "Gitrizm",
+      "mode": "Wordmark",
+      "result": "No results found",
+      "source": "https://tmsearch.uspto.gov/",
+      "endpoint_statuses_in_capture": [
+        200,
+        200,
+        200
+      ],
+      "capture_file": "uspto-single-word-queries-action.json",
+      "capture_sha256": "08709c72f78327e60c284e876f725da4572180b0731f0b938d0be1e2be9cf0b3"
+    },
+    {
+      "query": "Gitrise",
+      "mode": "Wordmark",
+      "result": "No results found",
+      "source": "https://tmsearch.uspto.gov/",
+      "endpoint_statuses_in_capture": [
+        200,
+        200,
+        200
+      ],
+      "capture_file": "uspto-single-word-queries-action.json",
+      "capture_sha256": "08709c72f78327e60c284e876f725da4572180b0731f0b938d0be1e2be9cf0b3"
+    },
+    {
+      "query": "CM:(gitrism OR gitrizm OR gitrise OR \"git prism\")",
+      "mode": "Field tag and Search builder",
+      "result": "No results found",
+      "source": "https://tmsearch.uspto.gov/",
+      "endpoint_statuses_in_capture": [
+        200,
+        200
+      ],
+      "capture_file": "uspto-field-queries-action.json",
+      "capture_sha256": "d71871ba0f1f79d003f50bbbe2651586d35916b017cdd7eab72c854e54daa2b2"
+    },
+    {
+      "query": "CM:\"see changes know history\"",
+      "mode": "Field tag and Search builder",
+      "result": "No results found",
+      "source": "https://tmsearch.uspto.gov/",
+      "endpoint_statuses_in_capture": [
+        200,
+        200
+      ],
+      "capture_file": "uspto-field-queries-action.json",
+      "capture_sha256": "d71871ba0f1f79d003f50bbbe2651586d35916b017cdd7eab72c854e54daa2b2"
+    }
+  ],
+  "excluded_searches": [
+    {
+      "source_capture": "uspto-gitrism-variants-browser.json",
+      "reason": "OR was interpreted as a word in Wordmark mode, so results did not answer the intended Boolean query"
+    },
+    {
+      "source_capture": "uspto-slogan-browser.json",
+      "reason": "Multi-phrase input in Wordmark mode returned broad word matches, not a reliable phrase query"
+    },
+    {
+      "source_capture": "bing-name.raw",
+      "reason": "Unrelated results; not evidence for name availability"
+    },
+    {
+      "source_capture": "google-slogan.raw",
+      "reason": "Redirect shell; no usable search result"
+    }
+  ],
+  "register_gaps": {
+    "China": "Query site blocked request (browser 403)",
+    "WIPO": "Verification challenge; no register results",
+    "TMview": "Application shell only; no usable query result",
+    "figurative_marks_and_registered_designs": "Not cleared; no global image/design-code search"
+  },
+  "asset_hash_comparison": {
+    "eamodio.gitlens-19.3.0": {
+      "reference_asset_files": 175,
+      "matching_gitrism_resource_files": []
+    },
+    "donjayamanne.githistory-0.6.20": {
+      "reference_asset_files": 26,
+      "matching_gitrism_resource_files": []
+    },
+    "eamodio.gitlens-18.3.0": {
+      "reference_asset_files": 180,
+      "matching_gitrism_resource_files": []
+    }
+  },
+  "patent": {
+    "publication_number": "US11868765B2",
+    "assignee": "Axosoft, LLC",
+    "title": "Automatically presenting a visualization of information within a terminal",
+    "independent_claims_reviewed": [
+      1,
+      18,
+      20
+    ],
+    "pdf_pages_reviewed": [
+      20,
+      21
+    ],
+    "pdf_sha256": "c0cbaa816401f700da3c588fa7eaad3c34557cd29ac2afd60302231aaa1f13d1",
+    "finding": "Current implementation lacks the specified terminal/CLI and co-located visualization arrangement in the scoped comparison; no legal non-infringement opinion",
+    "gaps": [
+      "Official legal status, assignments and patent family not verified",
+      "Claim construction and equivalents not assessed",
+      "Broader keyword and other-assignee searches blocked",
+      "CNIPA patent query blocked"
+    ]
+  },
+  "retrieved_sources": [
+    {
+      "name": "bing-name",
+      "requested_url": "https://www.bing.com/search?q=%22Gitrism%22",
+      "final_url": "https://cn.bing.com/search?q=%22Gitrism%22",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "bytes": 99371,
+      "sha256": "7593427382258b914ee3c5e761dca680142aa8330e7e41d1ed063959b5e83862"
+    },
+    {
+      "name": "cnipa",
+      "requested_url": "https://sbj.cnipa.gov.cn/sbj/sbcx/",
+      "final_url": "https://sbj.cnipa.gov.cn/trademark-query",
+      "status": 200,
+      "content_type": "text/html;charset=UTF-8",
+      "bytes": 10210,
+      "sha256": "c791efb340e880989a51fca338910594c36c8130413fc27dc7f600c4cf336463"
+    },
+    {
+      "name": "google-slogan",
+      "requested_url": "https://www.google.com/search?q=%22See%20changes.%20Know%20history.%22",
+      "final_url": "https://www.google.com/search?q=%22See%20changes.%20Know%20history.%22",
+      "status": 200,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 92552,
+      "sha256": "9940b9288abfbfbde27c01bdd0be5d0b39a319360be06dd718ec48d912d8c095"
+    },
+    {
+      "name": "wipo",
+      "requested_url": "https://branddb.wipo.int/",
+      "final_url": "https://branddb.wipo.int/",
+      "status": 200,
+      "content_type": null,
+      "bytes": 1697,
+      "sha256": "4c03c00746444bead5ca41412ef6dbcc4479044af024f96799d113b56f42a35b"
+    },
+    {
+      "name": "uspto",
+      "requested_url": "https://tmsearch.uspto.gov/",
+      "final_url": "https://tmsearch.uspto.gov/",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 125660,
+      "sha256": "5aba7f34e23827f3da199172f53c73fb2d1dd865b39c22005a749a8d3f290895"
+    },
+    {
+      "name": "npm-name",
+      "requested_url": "https://registry.npmjs.org/-/v1/search?text=gitrism&size=20",
+      "final_url": "https://registry.npmjs.org/-/v1/search?text=gitrism&size=20",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 58,
+      "sha256": "99387941f7563bcc56214056701e35c52c2be399fc9a227b79bf9c520f1986ad"
+    },
+    {
+      "name": "ddg-name",
+      "requested_url": "https://html.duckduckgo.com/html/?q=%22Gitrism%22",
+      "final_url": "https://html.duckduckgo.com/html/?q=%22Gitrism%22",
+      "status": 200,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 9284,
+      "sha256": "91f2144d9a0176c7211c50a5afd0ae4ecf8074308f210960e24bee56d82aac9c"
+    },
+    {
+      "name": "justia-name",
+      "requested_url": "https://trademarks.justia.com/search?q=Gitrism",
+      "final_url": "https://trademarks.justia.com/search?q=Gitrism",
+      "status": 403,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 5581,
+      "sha256": "d1b93cea4330cdb4a575bea867b120fdb52c68e6651a8765c3eb40161344f9d1"
+    },
+    {
+      "name": "patents-axosoft",
+      "requested_url": "https://patents.google.com/xhr/query?url=assignee%3DAxosoft%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=assignee%3DAxosoft%26num%3D100&exp=",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 3587,
+      "sha256": "519bd347a599eddd436e9db5220219aea18e033c1fd8d3f9d7bd3f59b2cae113"
+    },
+    {
+      "name": "euipo",
+      "requested_url": "https://www.tmdn.org/tmview/",
+      "final_url": "https://www.tmdn.org/tmview/",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 531,
+      "sha256": "84baa2fd95e8dcca66e0fcc79f6dd29c29fd4d79adf14b4d177aca4216298c44"
+    },
+    {
+      "name": "gitgraph-readme",
+      "requested_url": "https://raw.githubusercontent.com/mhutchie/vscode-git-graph/master/README.md",
+      "final_url": "https://raw.githubusercontent.com/mhutchie/vscode-git-graph/master/README.md",
+      "status": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "bytes": 16851,
+      "sha256": "60ec841675b8a4bc7a9d3bf11e0a5e6522c9489871d5c7b8226db76284574b41"
+    },
+    {
+      "name": "patents-gitkraken",
+      "requested_url": "https://patents.google.com/xhr/query?url=assignee%3DGitKraken%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=assignee%3DGitKraken%26num%3D100&exp=",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 140,
+      "sha256": "0627f73d461f40f48e37366f8da8a6df63f405acd40fda87cf8f030f3290d391"
+    },
+    {
+      "name": "github-name",
+      "requested_url": "https://api.github.com/search/repositories?q=Gitrism&per_page=30",
+      "final_url": "https://api.github.com/search/repositories?q=Gitrism&per_page=30",
+      "status": 200,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 154805,
+      "sha256": "a527eb6095ca0904f1998748595e403cc5a620a608f4eb4a3ef1474172c64a8f"
+    },
+    {
+      "name": "githistory-readme",
+      "requested_url": "https://raw.githubusercontent.com/DonJayamanne/gitHistoryVSCode/master/README.md",
+      "final_url": "https://raw.githubusercontent.com/DonJayamanne/gitHistoryVSCode/master/README.md",
+      "status": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "bytes": 2056,
+      "sha256": "1d7cc899ac5d2da922ea80da4089b1e0925ab2ad8de578a4f59542115626bc66"
+    },
+    {
+      "name": "gitlens-graph",
+      "requested_url": "https://help.gitkraken.com/gitlens/commit-graph/",
+      "final_url": "https://help.gitkraken.com/gitlens/commit-graph/",
+      "status": 404,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 199546,
+      "sha256": "d6a4ca67460d12bee8f3523194300d5795663189e449623a17a1541a0f02be98"
+    },
+    {
+      "name": "gitlens-home",
+      "requested_url": "https://www.gitkraken.com/gitlens",
+      "final_url": "https://gitkraken.com/gitlens",
+      "status": 200,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 396750,
+      "sha256": "43299d7fcd3d68e36a23e2c20b60924a70fd3364df2845e17597216a983643f9"
+    },
+    {
+      "name": "patents-gitkraken-fulltext",
+      "requested_url": "https://patents.google.com/xhr/query?url=q%3DGitKraken%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=q%3DGitKraken%26num%3D100&exp=",
+      "status": 503,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 1103,
+      "sha256": "9010e5a841cf0acfb13facfaa2c3318bc8118020ec071d15de099eb9a628fd01"
+    },
+    {
+      "name": "ddg-name-variants",
+      "requested_url": "https://html.duckduckgo.com/html/?q=%22Gitrizm%22%20OR%20%22Git%20Prism%22%20OR%20%22Gitrise%22",
+      "final_url": "https://html.duckduckgo.com/html/?q=%22Gitrizm%22%20OR%20%22Git%20Prism%22%20OR%20%22Gitrise%22",
+      "status": 202,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 14254,
+      "sha256": "3688dfab6d4638faee17cfab70397f6997c42752d659a6f79e89489d9bc8187f"
+    },
+    {
+      "name": "patents-syntevo",
+      "requested_url": "https://patents.google.com/xhr/query?url=assignee%3DSyntevo%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=assignee%3DSyntevo%26num%3D100&exp=",
+      "status": 503,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 1103,
+      "sha256": "9010e5a841cf0acfb13facfaa2c3318bc8118020ec071d15de099eb9a628fd01"
+    },
+    {
+      "name": "ddg-class9",
+      "requested_url": "https://html.duckduckgo.com/html/?q=%22Gitrism%22%20trademark%20class%209%2042",
+      "final_url": "https://html.duckduckgo.com/html/?q=%22Gitrism%22%20trademark%20class%209%2042",
+      "status": 202,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 14192,
+      "sha256": "f895c8b7dd48d62f05b9acb79cfba8d245f3b3bec547a25fc2cd3c89f02d130b"
+    },
+    {
+      "name": "patent-axosoft-full",
+      "requested_url": "https://patents.google.com/patent/US11868765B2/en",
+      "final_url": "https://patents.google.com/patent/US11868765B2/en",
+      "status": 503,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 1103,
+      "sha256": "9010e5a841cf0acfb13facfaa2c3318bc8118020ec071d15de099eb9a628fd01"
+    },
+    {
+      "name": "patents-gitlens",
+      "requested_url": "https://patents.google.com/xhr/query?url=q%3DGitLens%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=q%3DGitLens%26num%3D100&exp=",
+      "status": 503,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 1103,
+      "sha256": "9010e5a841cf0acfb13facfaa2c3318bc8118020ec071d15de099eb9a628fd01"
+    },
+    {
+      "name": "ddg-gitrism-trademark",
+      "requested_url": "https://html.duckduckgo.com/html/?q=Gitrism%20trademark%20software",
+      "final_url": "https://html.duckduckgo.com/html/?q=Gitrism%20trademark%20software",
+      "status": 200,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 33321,
+      "sha256": "4523d98ffac1114abd0b0ec4a8916ed6a8d9df39a8d6d120afdbf3a5a7e4d948"
+    },
+    {
+      "name": "ddg-slogan",
+      "requested_url": "https://html.duckduckgo.com/html/?q=%22See%20changes.%20Know%20history.%22",
+      "final_url": "https://html.duckduckgo.com/html/?q=%22See%20changes.%20Know%20history.%22",
+      "status": 200,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 9341,
+      "sha256": "54539801d23f96d326b4d9e4e40325f97fa2194b4c66801a0b2f716dd52c8195"
+    },
+    {
+      "name": "patents-graph",
+      "requested_url": "https://patents.google.com/xhr/query?url=q%3D%28%22version%2Bcontrol%22%2B%22commit%2Bgraph%22%29%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=q%3D%28%22version%2Bcontrol%22%2B%22commit%2Bgraph%22%29%26num%3D100&exp=",
+      "status": 503,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 1103,
+      "sha256": "9010e5a841cf0acfb13facfaa2c3318bc8118020ec071d15de099eb9a628fd01"
+    },
+    {
+      "name": "patents-sublime",
+      "requested_url": "https://patents.google.com/xhr/query?url=assignee%3DSublime%2BHQ%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=assignee%3DSublime%2BHQ%26num%3D100&exp=",
+      "status": 503,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 1103,
+      "sha256": "9010e5a841cf0acfb13facfaa2c3318bc8118020ec071d15de099eb9a628fd01"
+    },
+    {
+      "name": "patents-rebase",
+      "requested_url": "https://patents.google.com/xhr/query?url=q%3D%28git%2B%22interactive%2Brebase%22%29%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=q%3D%28git%2B%22interactive%2Brebase%22%29%26num%3D100&exp=",
+      "status": 503,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 1103,
+      "sha256": "9010e5a841cf0acfb13facfaa2c3318bc8118020ec071d15de099eb9a628fd01"
+    },
+    {
+      "name": "patents-graph2",
+      "requested_url": "https://patents.google.com/xhr/query?url=q%3D%28%22version%2Bcontrol%22%2B%22branch%22%2B%22visualization%22%29%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=q%3D%28%22version%2Bcontrol%22%2B%22branch%22%2B%22visualization%22%29%26num%3D100&exp=",
+      "status": 503,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 1103,
+      "sha256": "9010e5a841cf0acfb13facfaa2c3318bc8118020ec071d15de099eb9a628fd01"
+    },
+    {
+      "name": "cnipa-patent",
+      "requested_url": "https://pss-system.cponline.cnipa.gov.cn/",
+      "final_url": "https://pss-system.cponline.cnipa.gov.cn/",
+      "status": 412,
+      "content_type": "text/html; charset=utf-8",
+      "bytes": 2436,
+      "sha256": "c2ad86e07c9260991d21464253f117b9fab10d4a1ef2892c9acc8cad0b3426f9"
+    },
+    {
+      "name": "patents-fournova",
+      "requested_url": "https://patents.google.com/xhr/query?url=assignee%3DFournova%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=assignee%3DFournova%26num%3D100&exp=",
+      "status": 503,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 1103,
+      "sha256": "9010e5a841cf0acfb13facfaa2c3318bc8118020ec071d15de099eb9a628fd01"
+    },
+    {
+      "name": "patents-gitrism",
+      "requested_url": "https://patents.google.com/xhr/query?url=q%3DGitrism%26num%3D100&exp=",
+      "final_url": "https://patents.google.com/xhr/query?url=q%3DGitrism%26num%3D100&exp=",
+      "status": 503,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 1103,
+      "sha256": "9010e5a841cf0acfb13facfaa2c3318bc8118020ec071d15de099eb9a628fd01"
+    },
+    {
+      "name": "gitlens-compose-png",
+      "requested_url": "https://gitkraken.com/wp-content/uploads/2026/08/Gitlens_feature_compose-changes.png",
+      "final_url": "https://gitkraken.com/wp-content/uploads/2026/08/Gitlens_feature_compose-changes.png",
+      "status": 200,
+      "content_type": "image/png",
+      "bytes": 87230,
+      "sha256": "6327d20d907a2db69b110a829c9fec2bdbf64ad52d3d7aed91f6f2a93cd0e4e4"
+    },
+    {
+      "name": "gitlens-graph-png",
+      "requested_url": "https://gitkraken.com/wp-content/uploads/2026/08/Gitlens_feature_commit-graph.png",
+      "final_url": "https://gitkraken.com/wp-content/uploads/2026/08/Gitlens_feature_commit-graph.png",
+      "status": 200,
+      "content_type": "image/png",
+      "bytes": 189197,
+      "sha256": "ba76f5394907237804d410ef329b6f3b2ccf7b78a79cb9ae3d941b4bfa1fe7ae"
+    },
+    {
+      "name": "githistory-doc",
+      "requested_url": "https://github.com/DonJayamanne/gitHistoryVSCode",
+      "final_url": "https://github.com/DonJayamanne/gitHistoryVSCode",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "bytes": 317378,
+      "sha256": "9f2d7b4219b318e79028fd73da969858c6735000acccdc984a826deb7be62cf3"
+    },
+    {
+      "name": "uspto-main",
+      "requested_url": "https://tmsearch.uspto.gov/main.js",
+      "final_url": "https://tmsearch.uspto.gov/main.js",
+      "status": 200,
+      "content_type": "application/javascript",
+      "bytes": 1884921,
+      "sha256": "50c5050c02bd3500e48307377c9402707fef0386b1d02e6cef9f54199e19b41c"
+    },
+    {
+      "name": "gitgraph-demo",
+      "requested_url": "https://raw.githubusercontent.com/mhutchie/vscode-git-graph/master/resources/demo.gif",
+      "final_url": "https://raw.githubusercontent.com/mhutchie/vscode-git-graph/master/resources/demo.gif",
+      "status": 200,
+      "content_type": "image/gif",
+      "bytes": 952793,
+      "sha256": "e0977a0b0ac4c5b4ecb1aca5c6c472842e939efcccafc8d42bf31a6a906b4342"
+    },
+    {
+      "name": "patent-justia",
+      "requested_url": "https://patents.justia.com/patent/11868765",
+      "final_url": "https://patents.justia.com/patent/11868765",
+      "status": 403,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 5560,
+      "sha256": "dc3ae8c016a01e0c3e99c27c2916e2512f04fb1b7adee89598443affb4dc7bad"
+    },
+    {
+      "name": "ddg-patent-graph",
+      "requested_url": "https://html.duckduckgo.com/html/?q=%22version%20control%22%20%22graph%22%20patent",
+      "final_url": "https://html.duckduckgo.com/html/?q=%22version%20control%22%20%22graph%22%20patent",
+      "status": 202,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 14236,
+      "sha256": "1e8644f2968cac6e2e173abc5cc7a0d604b721683946ce1eecba2879804aafe5"
+    },
+    {
+      "name": "cnipa-entry",
+      "requested_url": "https://sbj.cnipa.gov.cn/trademark-query",
+      "final_url": "https://sbj.cnipa.gov.cn/trademark-query",
+      "status": 200,
+      "content_type": "text/html;charset=UTF-8",
+      "bytes": 10210,
+      "sha256": "c791efb340e880989a51fca338910594c36c8130413fc27dc7f600c4cf336463"
+    },
+    {
+      "name": "patent-fpo",
+      "requested_url": "https://www.freepatentsonline.com/11868765.html",
+      "final_url": "https://www.freepatentsonline.com/11868765.html",
+      "status": 403,
+      "content_type": "text/html",
+      "bytes": 93,
+      "sha256": "0d3e98ca727fc1201b436170af5a63f23348aaf146a3ac6234f6c4da283e8b34"
+    },
+    {
+      "name": "patent-uspto-pdf",
+      "requested_url": "https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11868765",
+      "final_url": "https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11868765",
+      "status": 403,
+      "content_type": "text/html",
+      "bytes": 118,
+      "sha256": "58bf2215b395dcac74c009aa98701854e43cbe54a1cd3a95fee6a647ca9910d4"
+    },
+    {
+      "name": "github-exact",
+      "requested_url": "https://api.github.com/search/repositories?q=%22gitrism%22%20in%3Aname&per_page=100",
+      "final_url": "https://api.github.com/search/repositories?q=%22gitrism%22%20in%3Aname&per_page=100",
+      "status": 200,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 10354,
+      "sha256": "7c23c922c5f0287f1ba6f722199d0f1c189c9f7c1d2f90d0a663cd83d1a77441"
+    },
+    {
+      "name": "tmdn-browser-entry",
+      "requested_url": "https://www.tmdn.org/tmview/#/tmview",
+      "final_url": "https://www.tmdn.org/tmview/#/tmview",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 531,
+      "sha256": "84baa2fd95e8dcca66e0fcc79f6dd29c29fd4d79adf14b4d177aca4216298c44"
+    },
+    {
+      "name": "patent-pdf",
+      "requested_url": "https://patentimages.storage.googleapis.com/10/75/fb/57022ce6894815/US11868765.pdf",
+      "final_url": "https://patentimages.storage.googleapis.com/10/75/fb/57022ce6894815/US11868765.pdf",
+      "status": 200,
+      "content_type": "application/pdf",
+      "bytes": 1578572,
+      "sha256": "c0cbaa816401f700da3c588fa7eaad3c34557cd29ac2afd60302231aaa1f13d1"
+    },
+    {
+      "requested_url": "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery",
+      "method": "POST",
+      "query": "gitrism",
+      "status": 200,
+      "sha256": "11b8ce7b83cdaf7e097c84f656f998284783bedc4a25b5712da45684c8a09bf9",
+      "bytes": 253
+    },
+    {
+      "requested_url": "https://raw.githubusercontent.com/DonJayamanne/gitHistoryVSCode/main/images/gitLogv3.gif",
+      "status": 200,
+      "bytes": 1752898,
+      "sha256": "a36d5f0ee8024745149dbdfb98b6fa308c17bf2de5a2c67e4b3b0644eaa2537b"
+    }
+  ],
+  "notes": [
+    "HTTP 200 alone is not a successful register search. Blocked/blank/challenge pages are inconclusive.",
+    "Published screenshot comparisons are samples, not exhaustive UI similarity or source-copying analysis.",
+    "Field-query captures completed with HTTP 200 search responses; that browser run subsequently encountered ENOTEMPTY during temporary profile cleanup."
+  ]
+}

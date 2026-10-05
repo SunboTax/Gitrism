@@ -31,6 +31,15 @@ test('controller validates typed search, errors and preserves request identity',
   c.receive({type:'details',hash:'abc',request:7});await flush();assert.equal(c.sent.at(-1).request,7);
   assert.match(c.webview.html,/default-src 'none'/);assert.doesNotMatch(c.webview.html,/img-src https/);c.controller.dispose();
 });
+test('worktree failure leaves history and status available and clears after recovery',async()=>{
+  const git=fakeGit();git.graph=async()=>[{hash:'current'}];git.worktrees=async()=>{throw new Error('Cannot read worktrees');};
+  const c=attach(git);await c.controller.refresh();
+  let update=c.sent.findLast(m=>m.type==='data');assert.ok(update);assert.equal(update.data.status.branch,'main');
+  assert.equal(update.data.commits[0].hash,'current');assert.deepEqual(update.data.worktrees,[]);assert.equal(update.data.worktreesError,'Error: Cannot read worktrees');
+  assert.equal(c.sent.some(m=>m.type==='error'),false);
+  git.worktrees=async()=>[{path:'/repo',branch:'main'}];await c.controller.refresh();
+  update=c.sent.findLast(m=>m.type==='data');assert.equal(update.data.worktrees.length,1);assert.equal(update.data.worktreesError,undefined);c.controller.dispose();
+});
 test('mutations are serialized across the bottom panel and editor graph',async()=>{
   const wait=deferred(),git=fakeGit();let commits=0;
   git.commit=async()=>{commits++;await wait.promise;};

@@ -63,6 +63,7 @@
     return `<div class="section-heading"><div><h2>Stashes</h2><p>保存尚未提交的工作，稍后恢复</p></div>${btn('+ 保存工作区','stashPush')}</div><div class="cards">${data.stashes.map(s=>`<article class="card"><strong>${e(s.subject)}</strong><p><code>${e(s.ref)}</code> · ${e(date(s.date))}</p><div class="card-actions">${btn('查看变更','select',`data-hash="${e(s.hash)}"`)}${['apply','pop','drop'].map((a,i)=>btn(['应用（保留）','恢复并移除','删除'][i],'stashAction',`data-stash-action="${a}" data-hash="${e(s.hash)}"`)).join('')}</div></article>`).join('') || empty('没有保存的工作')}</div>`;
   }
   function worktreesView() {
+    if (data.worktreesError) return `<div class="section-heading"><h2>Worktrees</h2>${btn('重新读取','refresh')}</div>${empty('无法读取 Worktrees',data.worktreesError)}`;
     return `<div class="section-heading"><div><h2>Worktrees</h2><p>用独立目录同时处理多个分支</p></div>${btn('+ 创建 Worktree','createWorktree')}</div><div class="cards">${data.worktrees.map(w=>`<article class="card"><strong>⑂ ${e(w.branch)}</strong>${w.path===data.root ? '<span class="ref head">当前工作区</span>':''}<p class="path">${e(w.path)}</p><small class="muted">${e(w.locked || w.prunable || short(w.hash))}</small><div class="card-actions">${btn('在新窗口打开','openWorktree',`data-path="${e(w.path)}"`)}${w.path!==data.root && !w.locked ? btn('移除','removeWorktree',`data-path="${e(w.path)}"`) : ''}</div></article>`).join('')}</div>`;
   }
   function compareView() {

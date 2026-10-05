@@ -9,7 +9,7 @@ async function fixture(t) {
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'gitrism-rebase-test-'));
   t.after(()=>fs.rm(root,{recursive:true,force:true}));
   const run=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
-  run('init','-q','-b','main');run('config','user.name','Gitrism Tester');run('config','user.email','gitrism@example.invalid');run('config','commit.gpgsign','false');
+  run('init','-q');run('symbolic-ref','HEAD','refs/heads/main');run('config','user.name','Gitrism Tester');run('config','user.email','gitrism@example.invalid');run('config','commit.gpgsign','false');
   const git=new GitService(root);
   const commit=async(file,body,message)=>{await fs.writeFile(path.join(root,file),body);await git.stageAll();await git.commit(message);return run('rev-parse','HEAD');};
   const base=await commit('base.txt','base\n','Base');

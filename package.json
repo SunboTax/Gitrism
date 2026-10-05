@@ -2,7 +2,7 @@
   "name": "gitrism",
   "displayName": "Gitrism",
   "description": "See changes. Know history. A local Git workspace for VS Code.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "sunbotax",
   "license": "MIT",
   "repository": {

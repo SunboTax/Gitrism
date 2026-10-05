@@ -46,7 +46,29 @@ function parseFiles(output: string): ChangedFile[] {
   return files;
 }
 const logFormat = "%H%x1f%P%x1f%an%x1f%ad%x1f%D%x1f%s%x1e";
+function unquoteGitValue(value: string): string {
+  if (!value.startsWith('"') || !value.endsWith('"')) return value;
+  const escapes: Record<string, number> = { a: 7, b: 8, t: 9, n: 10, v: 11, f: 12, r: 13, '"': 34, "\\": 92 };
+  const bytes: number[] = [];
+  for (let i = 1; i < value.length - 1; i++) {
+    if (value[i] !== "\\") {
+      const codePoint = value.codePointAt(i)!;
+      bytes.push(...Buffer.from(String.fromCodePoint(codePoint)));
+      if (codePoint > 0xffff) i++;
+    } else {
+      const octal = value.slice(i + 1).match(/^[0-7]{1,3}/)?.[0];
+      if (octal) { bytes.push(parseInt(octal, 8)); i += octal.length; }
+      else {
+        const escaped = value[++i];
+        if (escapes[escaped] === undefined) throw new GitError("无法解析 Git 的引号转义信息");
+        bytes.push(escapes[escaped]);
+      }
+    }
+  }
+  return Buffer.from(bytes).toString("utf8");
+}
 export class GitService {
+  private worktreeNullOutput = true;
   public constructor(public readonly cwd: string, private readonly sshProxy?: string) {}
   private async run(args: string[], literalPaths = false, extraEnv: Record<string, string> = {}): Promise<string> {
     try {
@@ -74,7 +96,8 @@ export class GitService {
     return ref;
   }
   public async resolveCommit(ref: string): Promise<string> {
-    return (await this.run(["rev-parse", "--verify", "--end-of-options", this.ref(ref) + "^{commit}"])).trim();
+    // ref() rejects option-like input, including on Git versions without --end-of-options.
+    return (await this.run(["rev-parse", "--verify", this.ref(ref) + "^{commit}"])).trim();
   }
   public async hasHead(): Promise<boolean> { try { await this.resolveCommit("HEAD"); return true; } catch { return false; } }
   public async repositoryRoot(): Promise<string> { return (await this.run(["rev-parse", "--show-toplevel"])).trim(); }
@@ -197,16 +220,29 @@ export class GitService {
     await this.run(["stash", action, item.ref]);
   }
   public async worktrees(): Promise<WorktreeSummary[]> {
-    const output = await this.run(["worktree", "list", "--porcelain", "-z"]);
+    let output: string;
+    if (this.worktreeNullOutput) {
+      try { output = await this.run(["worktree", "list", "--porcelain", "-z"], false, { LC_ALL: "C" }); }
+      catch (error) {
+        if (!(error instanceof GitError) || !/unknown (?:switch|option)[^\r\n]*[\x60'\"]z['\"]/.test(error.detail ?? "")) throw error;
+        output = await this.run(["worktree", "list", "--porcelain"]);
+        this.worktreeNullOutput = false;
+      }
+    } else output = await this.run(["worktree", "list", "--porcelain"]);
     const result: WorktreeSummary[] = []; let item: WorktreeSummary | undefined;
-    for (const token of output.split("\0")) {
-      if (token.startsWith("worktree ")) { item = { path: token.slice(9), hash: "", branch: "HEAD", bare: false }; result.push(item); }
-      else if (item && token.startsWith("HEAD ")) item.hash = token.slice(5);
+    let readingPath = false;
+    const tokens = this.worktreeNullOutput ? output.split("\0") : output.split(process.platform === "win32" ? /\r?\n/ : /\n/);
+    for (const token of tokens) {
+      // Older Git emits raw paths, even when they contain embedded newlines.
+      if (item && readingPath && !/^HEAD [0-9a-f]{40,64}$/.test(token) && token !== "bare") { item.path += "\n" + token; continue; }
+      if (token.startsWith("worktree ")) { item = { path: token.slice(9), hash: "", branch: "HEAD", bare: false }; result.push(item); readingPath = !this.worktreeNullOutput; }
+      else if (item && token.startsWith("HEAD ")) { item.hash = token.slice(5); readingPath = false; }
       else if (item && token.startsWith("branch ")) item.branch = token.slice(7).replace(/^refs\/heads\//, "");
-      else if (item && token === "bare") item.bare = true;
-      else if (item && token.startsWith("locked")) item.locked = token.slice(7) || "已锁定";
-      else if (item && token.startsWith("prunable")) item.prunable = token.slice(9) || "可清理";
+      else if (item && token === "bare") { item.bare = true; readingPath = false; }
+      else if (item && (token === "locked" || token.startsWith("locked "))) item.locked = (this.worktreeNullOutput ? token.slice(7) : unquoteGitValue(token.slice(7))) || "已锁定";
+      else if (item && (token === "prunable" || token.startsWith("prunable "))) item.prunable = token.slice(9) || "可清理";
     }
+    if (readingPath) throw new GitError("无法读取 Worktree 路径，请升级 Git 后重试");
     return result;
   }
   public async createWorktree(directory: string, branch: string): Promise<void> {

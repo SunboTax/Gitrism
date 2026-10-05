@@ -2,7 +2,7 @@
 
 Gitrism independently implements common local Git workflows. The initial design referenced the commands and workflow categories exposed by the locally installed GitLens 19.3.0 manifest. The Git service, topology layout, interface, and assets are independently implemented; Gitrism contains no GitLens code or assets and does not modify subscription checks.
 
-This document describes actual behavior in Gitrism 0.1.0. It does not claim complete parity with another product or subscription tier.
+This document describes actual behavior in Gitrism 0.1.1. It does not claim complete parity with another product or subscription tier.
 
 | Workflow | Current support | Limits |
 | --- | --- | --- |
@@ -13,7 +13,7 @@ This document describes actual behavior in Gitrism 0.1.0. It does not claim comp
 | Reference comparison | Final file content, rename-aware diffs, and counts of unique commits | Lists at most 200 destination-only commits |
 | Branches and tags | Create, switch, safe branch deletion, remote branch browsing, and local tags | No force deletion or remote tag management |
 | Stashes | Save including untracked files, inspect, apply, pop, and delete | Ignored files are not included |
-| Worktrees | List, create from existing references, open in a new window, and remove | Removal does not force away changes or locks |
+| Worktrees | List, create from existing references, open in a new window, and remove; support legacy porcelain output | Removal does not force away changes or locks; Git 2.25.1 does not report lock/prune reasons; discovery failures stay within this view |
 | History operations | Cherry-pick, revert, merge, ordinary rebase, continue, and abort | No mainline-parent selection for merge commits |
 | Interactive rebase | Linear plan, reorder, pick, squash, fixup, drop, backups, and stale-plan checks | At most 100 commits; no reword or merge-preserving plan |
 | File timeline | Rename-following history, monthly commit counts, details, and diffs | At most 500 commits; chart measures commit counts, not changed lines |

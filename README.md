@@ -28,12 +28,12 @@ The editor graph and bottom panel share the same workspace interface. The interf
 
 ## Install
 
-Download [`gitrism-0.1.0.vsix`](https://github.com/SunboTax/gitrism/releases/tag/v0.1.0) from the private repository's Releases page. Sign in with an account that can access the repository.
+Download [`gitrism-0.1.1.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.1.1) from the repository's Releases page.
 
 In VS Code, choose **Extensions: Install from VSIX...**, or run:
 
 ```bash
-code --install-extension gitrism-0.1.0.vsix --force
+code --install-extension gitrism-0.1.1.vsix --force
 ```
 
 For Remote SSH, install the extension on the remote Extension Host. Reload the window after installation if VS Code requests it.
@@ -84,7 +84,9 @@ This release does not support rewording, merge-preserving interactive rebase, or
 
 ## Development
 
-Requirements: VS Code 1.85 or later, Git 2.31 or later, and Node.js 22 or later for the current development toolchain.
+Requirements: VS Code 1.85 or later, Git 2.25.1 or later, and Node.js 22 or later for the current development toolchain.
+
+Git versions before 2.36 do not support `worktree list -z`. Gitrism detects this and uses the older porcelain format. Git 2.25.1 does not report lock or prune reasons in that format, but Git still enforces worktree locks when removing a worktree. A worktree discovery failure is shown in the Worktrees view while repository status and commit history remain available.
 
 ```bash
 npm ci
@@ -93,7 +95,7 @@ npm test
 npm run package
 ```
 
-Press `F5` in VS Code to launch an Extension Development Host. The package command creates `gitrism-0.1.0.vsix` locally; it does not publish the extension.
+Press `F5` in VS Code to launch an Extension Development Host. The package command creates `gitrism-0.1.1.vsix` locally; it does not publish the extension.
 
 Tests create temporary Git repositories and cover topology, file paths and renames, staging, comparisons, stashes, worktrees, conflicts, and interactive rebase. Browser tests use Chrome to verify the real DOM, content security policy, escaping, draft persistence, themes, and narrow layouts.
 
@@ -104,6 +106,8 @@ Set `GITRISM_CHROME` if Chrome is installed at a different path. Browser tests r
 Git reads, diffs, and history analysis happen locally. Network operations occur when you request fetch, pull, push, or sync and use the repository's configured remotes. Git hooks and credential helpers follow the local Git configuration.
 
 Gitrism independently implements common Git workflows. It does not include GitLens code or assets, modify GitLens, or bypass subscription checks. See [feature scope and roadmap](docs/feature-scope.md) for current limits and planned work, including CodeLens, pull request integrations, and optional AI assistance.
+
+Gitrism is not affiliated with or endorsed by GitKraken or the maintainers of other Git extensions. Product names and marks belong to their respective owners. See the [preliminary intellectual property review](docs/ip-review-2026-10-05.md) for the checks performed and their limitations.
 
 ## License
 

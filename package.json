@@ -1,0 +1,209 @@
+{
+  "name": "gitrism",
+  "displayName": "Gitrism",
+  "description": "See changes. Know history. A local Git workspace for VS Code.",
+  "version": "0.1.0",
+  "publisher": "sunbotax",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SunboTax/gitrism.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SunboTax/gitrism/issues"
+  },
+  "engines": {
+    "vscode": ">=1.85.0"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "categories": [
+    "SCM Providers"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "workspaceContains:.git",
+    "onCommand:gitrism.refresh",
+    "onCommand:gitrism.showStatus",
+    "onCommand:gitrism.showBranches",
+    "onCommand:gitrism.showHistory",
+    "onCommand:gitrism.showLineBlame",
+    "onCommand:gitrism.toggleBlame",
+    "onCommand:gitrism.showCommit",
+    "onCommand:gitrism.sync",
+    "onCommand:gitrism.openGraph",
+    "onCommand:gitrism.openPanel",
+    "onView:gitrism.bottomPanel",
+    "onView:gitrism.repository"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gitrism.refresh",
+        "title": "Gitrism: Refresh"
+      },
+      {
+        "command": "gitrism.showStatus",
+        "title": "Gitrism: Show Repository Status"
+      },
+      {
+        "command": "gitrism.showBranches",
+        "title": "Gitrism: Switch Branch"
+      },
+      {
+        "command": "gitrism.showHistory",
+        "title": "Gitrism: Show File History"
+      },
+      {
+        "command": "gitrism.showLineBlame",
+        "title": "Gitrism: Show Line Blame"
+      },
+      {
+        "command": "gitrism.toggleBlame",
+        "title": "Gitrism: Toggle Inline Blame"
+      },
+      {
+        "command": "gitrism.showCommit",
+        "title": "Gitrism: Show Commit"
+      },
+      {
+        "command": "gitrism.sync",
+        "title": "Gitrism: Sync Repository"
+      },
+      {
+        "command": "gitrism.openGraph",
+        "title": "Gitrism: Open Commit Graph"
+      },
+      {
+        "command": "gitrism.openPanel",
+        "title": "Gitrism: Open Bottom Panel"
+      },
+      {
+        "command": "gitrism.chooseRepository",
+        "title": "Gitrism: Choose Repository"
+      },
+      {
+        "command": "gitrism.showLineHistory",
+        "title": "Gitrism: Show Selected Line History"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "gitrism.showHistory",
+          "group": "gitrism@1"
+        },
+        {
+          "command": "gitrism.showLineBlame",
+          "group": "gitrism@2"
+        },
+        {
+          "command": "gitrism.toggleBlame",
+          "group": "gitrism@3"
+        },
+        {
+          "command": "gitrism.showLineHistory",
+          "group": "gitrism@4",
+          "when": "resourceScheme == file"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "gitrism.refresh",
+          "when": "view == gitrism.repository",
+          "group": "navigation@1"
+        },
+        {
+          "command": "gitrism.openGraph",
+          "when": "view == gitrism.repository",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "gitrism",
+          "title": "Gitrism",
+          "icon": "resources/gitrism.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "gitrismPanel",
+          "title": "Gitrism",
+          "icon": "resources/gitrism.svg"
+        }
+      ]
+    },
+    "views": {
+      "gitrism": [
+        {
+          "id": "gitrism.repository",
+          "name": "Gitrism"
+        }
+      ],
+      "gitrismPanel": [
+        {
+          "id": "gitrism.bottomPanel",
+          "name": "Gitrism",
+          "type": "webview",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Gitrism",
+      "properties": {
+        "gitrism.inlineBlame.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "在编辑器中显示行作者、提交消息及提交详情链接。"
+        },
+        "gitrism.inlineBlame.mode": {
+          "type": "string",
+          "enum": [
+            "currentLine",
+            "allLines"
+          ],
+          "default": "currentLine",
+          "description": "默认仅显示当前行；allLines 显示全部行。"
+        },
+        "gitrism.inlineBlame.maxLines": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 100,
+          "description": "Maximum number of lines to decorate when inline blame is enabled."
+        },
+        "gitrism.sshProxy": {
+          "type": "string",
+          "default": "",
+          "description": "用于 SSH GitHub 连接的 SOCKS5 代理，例如 127.0.0.1:7890。留空则使用系统 SSH 配置。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npm run compile && vsce package",
+    "check": "tsc --noEmit -p ./",
+    "test": "npm run compile && node --test test/*.test.cjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^4.0.0",
+    "typescript": "^5.4.2"
+  },
+  "keywords": [
+    "git",
+    "history",
+    "graph",
+    "blame",
+    "worktree",
+    "rebase"
+  ]
+}

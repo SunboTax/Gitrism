@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+- Introduce an original prism visual identity with theme-aware cyan and purple accents, consistent line icons, and clearer typography.
+- Group repository navigation in a sidebar, with horizontal navigation for narrow windows and short bottom panels.
+- Refine the commit graph, search controls, reference badges, author initials, and selection states.
+- Prioritize commit details and changed files; group secondary history actions in an expandable section.
+- Redesign working changes, commit composition, repository cards, comparisons, timelines, and rebase plans.
+- Use flexible graph sizing and contained scrolling when filters wrap; simplify narrow graph rows while retaining metadata in commit details.
+- Add browser coverage for all nine views at 320px, a filtered 300px-high panel, scroll preservation, and expandable commit actions.
+
 ## 0.1.1
 
 - Support Git 2.25.1 by falling back to newline-delimited worktree output when `worktree list -z` is unavailable, and cache the detected capability.

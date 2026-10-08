@@ -1,4 +1,38 @@
-.timeline-chart{display:block;margin:8px 20px;width:calc(100% - 40px);height:65px;max-width:650px}.timeline-chart rect{fill:var(--vscode-charts-blue,#75baff)}
-.graph-area{overflow:hidden}.graph-head{position:sticky;top:0;z-index:1}.graph-compact .graph-head,.graph-compact .commit-row{grid-template-columns:64px minmax(200px,1fr) 135px 100px 74px;min-width:624px}.graph-compact .graph-svg{width:64px}.graph-cell{overflow:hidden}
-@media(max-width:950px){.graph-compact .graph-head,.graph-compact .commit-row{grid-template-columns:64px minmax(180px,1fr) 110px 85px 65px;min-width:574px}}
-.rebase-plan{padding:0 20px 20px}.rebase-plan>p{font-size:12px;margin:12px 0}.rebase-step{display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--border)}.rebase-step select{width:85px}.step-number{width:20px;color:var(--muted);font-size:11px}.step-subject{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rebase-step.dropped .step-subject{text-decoration:line-through;opacity:.55}.rebase-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:16px}.rebase-actions span{font-size:11px}@media(max-width:640px){.rebase-step{gap:5px}.rebase-step code{display:none}}
+/* Graph variants and history planning, sharing workspace design tokens. */
+.graph-compact .graph-head, .graph-compact .commit-row {
+  grid-template-columns: 64px minmax(240px, 1fr) 135px 100px 76px;
+  min-width: 687px;
+}
+.graph-compact .graph-svg { width: 64px; }
+.timeline-chart { display: block; margin: 16px 24px; width: calc(100% - 48px); height: 65px; max-width: 650px; }
+.timeline-chart rect { fill: var(--accent); rx: 3px; }
+.rebase-plan { padding: 0 24px 24px; }
+.rebase-plan>p { font-size: 12px; margin: 16px 0; line-height: 1.7; }
+.rebase-steps { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.rebase-step { display: flex; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid var(--soft-border); }
+.rebase-step:last-child { border-bottom: 0; }
+.rebase-step select { width: 90px; font-size: 12px; }
+.step-number { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--tint); color: var(--accent); font: 11px var(--vscode-editor-font-family, monospace); flex: none; }
+.step-subject { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rebase-step.dropped .step-subject { text-decoration: line-through; opacity: .55; }
+.rebase-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 20px; }
+.rebase-actions span { font-size: 11px; }
+@media (max-width: 1200px) {
+  .graph-compact .graph-head, .graph-compact .commit-row { grid-template-columns: 64px minmax(220px, 1fr) 115px 90px 72px; min-width: 625px; gap: 8px; }
+}
+@media (max-width: 640px) {
+  /* Keep the graph and message immediately visible; metadata remains in details. */
+  .graph-head, .commit-row { grid-template-columns: 160px minmax(0, 1fr); min-width: 0; gap: 8px; padding-inline: 10px; }
+  .graph-compact .graph-head, .graph-compact .commit-row { grid-template-columns: 64px minmax(0, 1fr); min-width: 0; }
+  .graph-head>span:nth-child(n+3), .commit-row>.author, .commit-row>time, .commit-row>code { display: none; }
+  .commit-subject { flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; }
+  .refs { max-width: 100%; }
+  .ref { font-size: 9px; padding-block: 0; }
+  .timeline-chart { margin-inline: 16px; width: calc(100% - 32px); }
+  .rebase-plan { padding: 0 16px 20px; }
+  .rebase-step { gap: 6px; padding: 8px; font-size: 12px; }
+  .rebase-step code { display: none; }
+  .rebase-step select { width: 75px; padding-inline: 5px; }
+  .rebase-step .icon-button { width: 24px; padding: 4px; }
+  .step-number { width: 20px; }
+}

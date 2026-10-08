@@ -24,16 +24,28 @@ No account or subscription is required. Gitrism has no telemetry, external avata
 - **Multiple repositories:** select workspace repositories and nested repositories discovered by VS Code's built-in Git extension.
 - **Remote operations:** fetch, pull with `--ff-only`, push, and sync using existing Git credentials, with an optional SSH SOCKS5 proxy.
 
-The editor graph and bottom panel share the same workspace interface. The interface currently uses Chinese labels, follows the active VS Code theme, and adapts to narrow panels.
+The editor graph and bottom panel share the same workspace interface. The interface currently uses Chinese labels and combines an original prism identity with the active VS Code theme. Navigation moves from a sidebar to a horizontal strip in narrow windows and short panels. Compact graph rows keep history readable, with author, date, and hash available in commit details.
+
+## Workspace preview
+
+Commit history and details in a dark theme:
+
+![Gitrism commit graph and details](docs/images/workspace-dark.png)
+
+Working changes and commit composition:
+
+![Gitrism working changes](docs/images/working-changes.png)
+
+These previews use sample repository data. Colors follow your VS Code theme.
 
 ## Install
 
-Download [`gitrism-0.1.1.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.1.1) from the repository's Releases page.
+Download [`gitrism-0.2.0.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.2.0) from the repository's Releases page.
 
 In VS Code, choose **Extensions: Install from VSIX...**, or run:
 
 ```bash
-code --install-extension gitrism-0.1.1.vsix --force
+code --install-extension gitrism-0.2.0.vsix --force
 ```
 
 For Remote SSH, install the extension on the remote Extension Host. Reload the window after installation if VS Code requests it.
@@ -95,7 +107,7 @@ npm test
 npm run package
 ```
 
-Press `F5` in VS Code to launch an Extension Development Host. The package command creates `gitrism-0.1.1.vsix` locally; it does not publish the extension.
+Press `F5` in VS Code to launch an Extension Development Host. The package command creates `gitrism-0.2.0.vsix` locally; it does not publish the extension.
 
 Tests create temporary Git repositories and cover topology, file paths and renames, staging, comparisons, stashes, worktrees, conflicts, and interactive rebase. Browser tests use Chrome to verify the real DOM, content security policy, escaping, draft persistence, themes, and narrow layouts.
 

@@ -59,17 +59,32 @@ test('browser: CSP, graph/details, tabs, draft persistence, searches, timeline a
   await until("document.querySelectorAll('.commit-row').length===4");
   assert.equal(await evaluate("document.querySelectorAll('.commit-subject img').length"),0);
   assert.equal(await evaluate("document.querySelectorAll('img').length"),0);
+  assert.equal(await evaluate("document.querySelectorAll('.commit-subject')[3].textContent"),commits[3].subject);
+  // Use a readable sample subject in the screenshots after verifying hostile text.
+  await evaluate("fixture.commits[3].subject='Create the initial repository';deliver({type:'data',data:fixture})");
   await click('.commit-row');await until("document.querySelector('.detail-header h2')?.textContent==='Merge feature into main'");
   await click('.file-diff');assert.equal(await evaluate("sent.at(-1).type"),'diff');
   const output=process.env.GITRISM_SCREENSHOTS || '/tmp/gitrism-preview';await fs.mkdir(output,{recursive:true});
-  await fs.writeFile(path.join(output,'dark.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
+  const screenshot=async name=>{
+    await evaluate("new Promise(resolve=>setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(resolve)),160))");
+    await fs.writeFile(path.join(output,name),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
+  };
+  await screenshot('dark.png');
+  await click('.more-actions summary');
+  assert.ok(await evaluate("document.querySelector('[data-action=compareStart]').getBoundingClientRect().height>0"));
+  await click('[data-action=compareStart]');
+  assert.equal(await evaluate("document.getElementById('compare-from').value"),hash(1));
   await click('[data-tab="changes"]');
+  await screenshot('changes.png');
   await evaluate("const draft=document.getElementById('draft');draft.value='Keep draft after refresh';draft.dispatchEvent(new Event('input',{bubbles:true}))");
   await click('[data-action="refresh"]');await until("document.getElementById('draft')?.value==='Keep draft after refresh'");
   await click('[data-action="stage"]');assert.equal(await evaluate("sent.at(-1).type"),'stage');
   await click('[data-tab="graph"]');await evaluate("document.getElementById('search-by').value='author';document.getElementById('search').value='Chen'");await click('[data-action="search"]');
   await until("sent.some(m=>m.type==='search'&&m.searchBy==='author'&&m.query==='Chen')");
-  for(const tab of ['branches','tags','stashes','worktrees','compare']){await click('[data-tab="'+tab+'"]');assert.ok(await evaluate("document.querySelector('.content h2')?.textContent"));}
+  for(const tab of ['branches','tags','stashes','worktrees','compare']){
+    await click('[data-tab="'+tab+'"]');assert.ok(await evaluate("document.querySelector('.content h2')?.textContent"));
+    await screenshot(tab+'.png');
+  }
   await click('[data-tab="worktrees"]');
   await evaluate("fixture.worktreesError='Cannot read <img src=x onerror=alert(1)> worktrees';deliver({type:'data',data:fixture})");
   assert.equal(await evaluate("document.querySelector('.content strong')?.textContent"),'无法读取 Worktrees');
@@ -87,12 +102,32 @@ test('browser: CSP, graph/details, tabs, draft persistence, searches, timeline a
   await click('[data-action="moveRebase"][data-index="2"][data-direction="-1"]');
   await evaluate("const action=document.querySelector('[data-rebase-index=\"1\"]');action.value='fixup';action.dispatchEvent(new Event('change',{bubbles:true}))");await click('[data-action="applyRebase"]');
   assert.equal(await evaluate("sent.at(-1).type"),'applyRebase');assert.equal(await evaluate("sent.at(-1).steps[1].action"),'fixup');
-  await fs.writeFile(path.join(output,'rebase.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
+  await screenshot('rebase.png');
   await click('[data-tab="graph"]');
+  await click('[data-action="clearSearch"]');await until("fixture.options.query===''");
+  await click('.commit-row');await until("document.querySelector('.detail-header h2')?.textContent==='Merge feature into main'");
   await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'light'}]});
-  await fs.writeFile(path.join(output,'light.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
+  await screenshot('light.png');
   await call('Emulation.setDeviceMetricsOverride',{width:480,height:740,deviceScaleFactor:1,mobile:false});
   assert.ok(await evaluate("document.documentElement.scrollWidth<=480"));
-  await fs.writeFile(path.join(output,'narrow.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
+  await screenshot('narrow.png');
+  // All views must fit a small window; cards/forms must not overflow the document.
+  await call('Emulation.setDeviceMetricsOverride',{width:320,height:740,deviceScaleFactor:1,mobile:false});
+  for(const tab of ['graph','changes','branches','tags','stashes','worktrees','compare','timeline','rebase']) {
+    await click('[data-tab="'+tab+'"]');
+    assert.ok(await evaluate("document.documentElement.scrollWidth<=320"),tab+' should fit a 320px window');
+    assert.ok(await evaluate("document.querySelector('.content').scrollWidth<=document.querySelector('.content').clientWidth"),tab+' content should not overflow horizontally');
+  }
+  await click('[data-tab="graph"]');await click('[data-action="clearSearch"]');
+  await call('Emulation.setDeviceMetricsOverride',{width:1440,height:300,deviceScaleFactor:1,mobile:false});
+  await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
+  // A long, filtered history exercises wrapping, contained scrolling and selection.
+  await evaluate("fixture.commits=Array.from({length:60},(_,i)=>({...fixture.commits[0],hash:i.toString(16).padStart(40,'0'),parents:i<59?[(i+1).toString(16).padStart(40,'0')]:[],refs:i===0?'HEAD -> main':'',subject:'Commit '+i}));fixture.options={query:'test',file:'src/app.ts'};deliver({type:'data',data:fixture})");
+  assert.ok(await evaluate("document.querySelector('.graph-scroll').clientHeight>=100"),'Short panel should retain room for the graph: '+await evaluate("JSON.stringify(['.header','.tabs','.filters','.hint','.graph-scroll','.footer'].map(s=>[s,document.querySelector(s)?.clientHeight]))"));
+  assert.ok(await evaluate("document.querySelector('.graph-scroll').scrollHeight>document.querySelector('.graph-scroll').clientHeight"),'Long history should scroll inside the graph');
+  assert.ok(await evaluate("document.querySelector('.graph-layout').getBoundingClientRect().bottom<=document.querySelector('.footer').getBoundingClientRect().top+1"),'Filters and graph must fit above the footer');
+  await evaluate("document.getElementById('graph-scroll').scrollTop=160;deliver({type:'data',data:fixture})");
+  assert.equal(await evaluate("document.getElementById('graph-scroll').scrollTop"),160);
+  await screenshot('panel.png');
   assert.deepEqual(errors,[],'No script or CSP errors should occur');
 });

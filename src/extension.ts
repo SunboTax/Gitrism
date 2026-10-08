@@ -1,3 +1,4 @@
+import { t, setLanguage, getLocale } from "./localization";
 import * as vscode from "vscode";
 import * as path from "node:path";
 import { BlameLine, GitError, GitService } from "./gitService";
@@ -25,6 +26,7 @@ let repositoryRequest = 0;
 let blameCache: { key: string; lines: BlameLine[] } | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  setLanguage(vscode.env.language);
   extensionContext = context;
   await migrateLegacySettings(context);
   output = vscode.window.createOutputChannel("Gitrism");
@@ -86,7 +88,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
   register("gitrism.chooseRepository", async () => {
     await discoverRepositories();
-    const choice = await vscode.window.showQuickPick(repositories.map(repo => ({ label: path.basename(repo.cwd), description: repo.cwd, repo })), { placeHolder: "选择当前工作区中的 Git 仓库" });
+    const choice = await vscode.window.showQuickPick(repositories.map(repo => ({ label: path.basename(repo.cwd), description: repo.cwd, repo })), { placeHolder: t("Choose a Git repository in this workspace") });
     if (choice) await selectRepository(choice.repo, context);
   });
   register("gitrism.showLineHistory", async () => {
@@ -196,7 +198,7 @@ function scheduleBlame(): void {
 async function ensureWorkspace(context: vscode.ExtensionContext): Promise<GitrismTreeProvider | undefined> {
   const tree = await initializeWorkspace(context);
   if (!tree) {
-    void vscode.window.showInformationMessage("Gitrism: 请先打开一个工作区文件夹。");
+    void vscode.window.showInformationMessage(t("Gitrism: Open a workspace folder first."));
   }
   return tree;
 }
@@ -206,12 +208,12 @@ async function showStatus(): Promise<void> {
   try {
     const status = await git.status();
     const message = [
-      `分支: ${status.branch}`,
-      `暂存: ${status.staged}`,
-      `已修改: ${status.changed}`,
-      `未跟踪: ${status.untracked}`
+      t("Branch: {0}", status.branch),
+      t("Staged: {0}", status.staged),
+      t("Modified: {0}", status.changed),
+      t("Untracked: {0}", status.untracked)
     ];
-    if (status.ahead || status.behind) message.push(`远程: ahead ${status.ahead}, behind ${status.behind}`);
+    if (status.ahead || status.behind) message.push(t("Remote: ahead {0}, behind {1}", status.ahead, status.behind));
     void vscode.window.showInformationMessage(message.join("  ·  "));
   } catch (error) {
     reportError(error);
@@ -225,14 +227,14 @@ async function showBranches(tree: GitrismTreeProvider): Promise<void> {
     const branches = await repository.branches();
     const choice = await vscode.window.showQuickPick(branches.map((branch) => ({
       label: `${branch.current ? "$(check) " : ""}${branch.name}`,
-      description: branch.remote ? `跟踪 ${branch.remote}` : undefined,
+      description: branch.remote ? t("Tracking {0}", branch.remote) : undefined,
       branch: branch.name,
       current: branch.current
-    })), { placeHolder: "选择要切换到的分支" });
+    })), { placeHolder: t("Choose a branch to switch to") });
     if (!choice || choice.current) return;
     await executeGitMutation(repository, () => repository.checkout(choice.branch));
     await refreshWorkspace();
-    void vscode.window.showInformationMessage(`已切换到 ${choice.branch}`);
+    void vscode.window.showInformationMessage(t("Switched to {0}", choice.branch));
   } catch (error) {
     reportError(error);
   }
@@ -266,7 +268,7 @@ async function showLineBlame(): Promise<void> {
     const short = item.hash.replace(/^\^/, "").slice(0, 8);
     const choice = await vscode.window.showInformationMessage(
       `${short} · ${item.author} · ${formatDate(item.date)}\n${item.summary}`,
-      "查看提交"
+      t("View commit")
     );
     if (choice && !/^0+$/.test(item.hash)) await showCommit(item.hash);
   } catch (error) {
@@ -277,7 +279,7 @@ async function showLineBlame(): Promise<void> {
 async function showCommit(hash?: string): Promise<void> {
   if (!git) return;
   try {
-    const selected = hash ?? (await vscode.window.showInputBox({ prompt: "输入提交哈希" }));
+    const selected = hash ?? (await vscode.window.showInputBox({ prompt: t("Enter a commit hash") }));
     if (!selected) return;
     const resolved = await git.resolveCommit(selected);
     await CommitGraphPanel.createOrShow(git, extensionContext.extensionUri, refreshWorkspace, resolved);
@@ -290,11 +292,11 @@ async function syncRepository(tree: GitrismTreeProvider): Promise<void> {
   if (!git) return;
   const repository = git;
   const choice = await vscode.window.showQuickPick([
-    { label: "$(sync) 同步", description: "先 pull --ff-only，再 push", action: "sync" },
-    { label: "$(cloud-download) 拉取", description: "只执行 pull --ff-only", action: "pull" },
-    { label: "$(cloud-upload) 推送", description: "只执行 push", action: "push" },
-    { label: "$(refresh) 获取远程更新", description: "执行 fetch --all --prune", action: "fetch" }
-  ], { placeHolder: "选择 GitHub 同步操作" });
+    { label: t("$(sync) Sync"), description: t("Run pull --ff-only, then push"), action: "sync" },
+    { label: t("$(cloud-download) Pull"), description: t("Run pull --ff-only"), action: "pull" },
+    { label: t("$(cloud-upload) Push"), description: t("Run push"), action: "push" },
+    { label: t("$(refresh) Fetch remote updates"), description: t("Run fetch --all --prune"), action: "fetch" }
+  ], { placeHolder: t("Choose a remote Git operation") });
   if (!choice) return;
   try {
     await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Gitrism: " + choice.label, cancellable: false }, () => executeGitMutation(repository, async () => {
@@ -304,7 +306,7 @@ async function syncRepository(tree: GitrismTreeProvider): Promise<void> {
       if (choice.action === "fetch") await repository.fetch();
     }));
     await refreshWorkspace();
-    void vscode.window.showInformationMessage("Gitrism: 同步操作完成");
+    void vscode.window.showInformationMessage(t("Gitrism: Remote operation completed"));
   } catch (error) {
     reportError(error);
   }
@@ -354,11 +356,11 @@ async function updateInlineBlame(): Promise<void> {
       hover.appendText(`${item.author} · ${formatDate(item.date)}\n\n${item.summary}`);
       if (!uncommitted) {
         const uri = "command:gitrism.showCommit?" + encodeURIComponent(JSON.stringify([item.hash, repository.cwd]));
-        hover.appendMarkdown(`\n\n[查看提交 ${item.hash.slice(0,8)}](${uri})`);
+        hover.appendMarkdown(`\n\n[${t("View commit {0}", item.hash.slice(0,8))}](${uri})`);
         hover.isTrusted = { enabledCommands: ["gitrism.showCommit"] };
       }
       decorations.push({ range: new vscode.Range(index, 0, index, 0), hoverMessage: hover,
-        renderOptions: { after: { contentText: uncommitted ? " 尚未提交" : ` ${item.author} · ${item.hash.replace(/^\^/, "").slice(0,8)} · ${item.summary}` } } });
+        renderOptions: { after: { contentText: uncommitted ? t(" Uncommitted") : ` ${item.author} · ${item.hash.replace(/^\^/, "").slice(0,8)} · ${item.summary}` } } });
     });
     editor.setDecorations(blameDecoration, decorations);
   } catch {
@@ -373,7 +375,7 @@ async function selectEditorRepository(editor: vscode.TextEditor): Promise<void> 
 
 function formatDate(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(getLocale());
 }
 
 function reportError(error: unknown): void {

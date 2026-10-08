@@ -1,0 +1,21 @@
+{
+  "extension.description": "看清變更，掌握歷史。VS Code 的本地 Git 工作區。",
+  "command.refresh": "Gitrism: 重新整理",
+  "command.showStatus": "Gitrism: 檢視倉庫狀態",
+  "command.showBranches": "Gitrism: 切換分支",
+  "command.showHistory": "Gitrism: 檢視檔案歷史",
+  "command.showLineBlame": "Gitrism: 檢視行作者",
+  "command.toggleBlame": "Gitrism: 切換行內作者註釋",
+  "command.showCommit": "Gitrism: 檢視提交",
+  "command.sync": "Gitrism: 同步倉庫",
+  "command.openGraph": "Gitrism: 開啟提交圖",
+  "command.openPanel": "Gitrism: 開啟底部面板",
+  "command.chooseRepository": "Gitrism: 選擇倉庫",
+  "command.showLineHistory": "Gitrism: 檢視選中行的歷史",
+  "setting.inlineBlame.enabled": "在編輯器中顯示行作者、提交訊息及提交詳情連結。",
+  "setting.inlineBlame.mode": "預設僅註釋當前行；allLines 註釋整個檔案。",
+  "setting.inlineBlame.mode.currentLine": "僅註釋當前行。",
+  "setting.inlineBlame.mode.allLines": "註釋檔案中的所有行。",
+  "setting.inlineBlame.maxLines": "啟用行內作者註釋時，允許註釋的最大檔案行數。",
+  "setting.sshProxy": "用於 SSH GitHub 連線的 SOCKS5 代理，例如 127.0.0.1:7890。留空則使用系統 SSH 配置。"
+}

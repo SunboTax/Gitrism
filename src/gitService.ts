@@ -1,3 +1,4 @@
+import { t } from "./localization";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import * as path from "node:path";
@@ -27,7 +28,7 @@ export class GitError extends Error {
 }
 function buildSshCommand(proxy: string): string {
   const value = proxy.trim().replace(/^socks5h?:\/\//, "");
-  if (!/^[a-zA-Z0-9_.-]+:\d{1,5}$/.test(value)) throw new GitError("SSH 代理格式应为 host:port");
+  if (!/^[a-zA-Z0-9_.-]+:\d{1,5}$/.test(value)) throw new GitError(t("SSH proxy must use host:port format"));
   return "ssh -o 'ProxyCommand=nc -X 5 -x " + value + " %h %p'";
 }
 function parseCommits(output: string): GraphCommit[] {
@@ -60,7 +61,7 @@ function unquoteGitValue(value: string): string {
       if (octal) { bytes.push(parseInt(octal, 8)); i += octal.length; }
       else {
         const escaped = value[++i];
-        if (escapes[escaped] === undefined) throw new GitError("无法解析 Git 的引号转义信息");
+        if (escapes[escaped] === undefined) throw new GitError(t("Unable to parse Git's quoted escape sequences"));
         bytes.push(escapes[escaped]);
       }
     }
@@ -81,18 +82,18 @@ export class GitService {
     } catch (error) {
       if (error instanceof GitError) throw error;
       const e = error as { code?: string | number; killed?: boolean; stderr?: string; message?: string };
-      throw new GitError("Git 操作失败", e.code === "ETIMEDOUT" || e.killed
-        ? "Git 操作超过 60 秒。请检查远程地址、SSH 密钥、代理和网络。" : e.stderr || e.message);
+      throw new GitError(t("Git operation failed"), e.code === "ETIMEDOUT" || e.killed
+        ? t("Git operation exceeded 60 seconds. Check the remote URL, SSH keys, proxy, and network.") : e.stderr || e.message);
     }
   }
   public filePath(file: string): string {
-    if (!file || path.isAbsolute(file) || file.includes("\0") || /(^|\/)\.\.($|\/)/.test(file)) throw new GitError("无效的仓库文件路径");
+    if (!file || path.isAbsolute(file) || file.includes("\0") || /(^|\/)\.\.($|\/)/.test(file)) throw new GitError(t("Invalid repository file path"));
     const absolute = path.resolve(this.cwd, file);
-    if (!absolute.startsWith(path.resolve(this.cwd) + path.sep)) throw new GitError("文件不在当前仓库中");
+    if (!absolute.startsWith(path.resolve(this.cwd) + path.sep)) throw new GitError(t("File is outside the current repository"));
     return absolute;
   }
   private ref(ref: string): string {
-    if (!ref || ref.startsWith("-") || /[\0\r\n]/.test(ref)) throw new GitError("无效的 Git 引用");
+    if (!ref || ref.startsWith("-") || /[\0\r\n]/.test(ref)) throw new GitError(t("Invalid Git reference"));
     return ref;
   }
   public async resolveCommit(ref: string): Promise<string> {
@@ -146,7 +147,7 @@ export class GitService {
     else await this.run(["rm", "--cached", "--force", "--", ...paths], true);
   }
   public async commit(message: string): Promise<void> {
-    if (!message.trim()) throw new GitError("请填写提交消息");
+    if (!message.trim()) throw new GitError(t("Enter a commit message"));
     await this.run(["commit", "-m", message.trim()]);
   }
   public async checkout(branch: string): Promise<void> { await this.run(["switch", this.ref(branch)]); }
@@ -184,7 +185,7 @@ export class GitService {
       const args = ["diff-tree", "--root", "--no-commit-id", "-r", untracked];
       const [names, summary] = await Promise.all([this.run([...args, "--name-status", "-z", "--"]), this.run([...args, "--stat", "--"])]);
       changedFiles.push(...parseFiles(names).map(file => ({ ...file, from: "EMPTY", to: untracked })));
-      extraStats = "\n未跟踪文件：\n" + summary;
+      extraStats = t("\nUntracked files:\n") + summary;
     }
     return { hash: id, parents: parentList, author, email, date, message: message.join("\0").trimEnd(), files: changedFiles, stats: stats + extraStats };
   }
@@ -216,7 +217,7 @@ export class GitService {
   public async stashPush(message: string): Promise<void> { await this.run(["stash", "push", "--include-untracked", "-m", message || "Gitrism stash"]); }
   public async stashAction(action: "apply" | "pop" | "drop", hash: string): Promise<void> {
     const item = (await this.stashes()).find(s => s.hash === hash);
-    if (!item) throw new GitError("该 stash 已不存在，请刷新");
+    if (!item) throw new GitError(t("This stash no longer exists. Refresh the workspace."));
     await this.run(["stash", action, item.ref]);
   }
   public async worktrees(): Promise<WorktreeSummary[]> {
@@ -239,18 +240,18 @@ export class GitService {
       else if (item && token.startsWith("HEAD ")) { item.hash = token.slice(5); readingPath = false; }
       else if (item && token.startsWith("branch ")) item.branch = token.slice(7).replace(/^refs\/heads\//, "");
       else if (item && token === "bare") { item.bare = true; readingPath = false; }
-      else if (item && (token === "locked" || token.startsWith("locked "))) item.locked = (this.worktreeNullOutput ? token.slice(7) : unquoteGitValue(token.slice(7))) || "已锁定";
-      else if (item && (token === "prunable" || token.startsWith("prunable "))) item.prunable = token.slice(9) || "可清理";
+      else if (item && (token === "locked" || token.startsWith("locked "))) item.locked = (this.worktreeNullOutput ? token.slice(7) : unquoteGitValue(token.slice(7))) || t("Locked");
+      else if (item && (token === "prunable" || token.startsWith("prunable "))) item.prunable = token.slice(9) || t("Prunable");
     }
-    if (readingPath) throw new GitError("无法读取 Worktree 路径，请升级 Git 后重试");
+    if (readingPath) throw new GitError(t("Unable to read the worktree path. Upgrade Git and try again."));
     return result;
   }
   public async createWorktree(directory: string, branch: string): Promise<void> {
-    if (!path.isAbsolute(directory)) throw new GitError("Worktree 需要绝对路径");
+    if (!path.isAbsolute(directory)) throw new GitError(t("Worktree requires an absolute path"));
     await this.run(["worktree", "add", "--", directory, this.ref(branch)]);
   }
   public async removeWorktree(directory: string): Promise<void> {
-    if (!(await this.worktrees()).some(w => w.path === directory)) throw new GitError("该 worktree 已不存在");
+    if (!(await this.worktrees()).some(w => w.path === directory)) throw new GitError(t("This worktree no longer exists"));
     await this.run(["worktree", "remove", "--", directory]);
   }
   public async operation(action: "cherry-pick" | "revert" | "merge" | "rebase", ref: string): Promise<void> {
@@ -258,27 +259,27 @@ export class GitService {
     await this.run(action === "merge" || action === "revert" ? [action, "--no-edit", hash] : [action, hash]);
   }
   public async rebasePlan(ref: string): Promise<RebasePlan> {
-    if (await this.operationState()) throw new GitError("请先完成或中止当前 Git 操作");
+    if (await this.operationState()) throw new GitError(t("Complete or abort the current Git operation first"));
     const [base, head, status] = await Promise.all([this.resolveCommit(ref), this.resolveCommit("HEAD"), this.status()]);
     await this.run(["merge-base", "--is-ancestor", base, head]);
     const range = base + ".." + head;
-    if ((await this.run(["rev-list", "--min-parents=2", range, "--"])).trim()) throw new GitError("此范围包含合并提交，请选择一段线性历史");
+    if ((await this.run(["rev-list", "--min-parents=2", range, "--"])).trim()) throw new GitError(t("This range includes merge commits. Choose a linear history."));
     const commits = parseCommits(await this.run(["log", "--reverse", "-n101", "--date=iso-strict", "--pretty=format:" + logFormat, range, "--"]));
-    if (!commits.length) throw new GitError("基点之后没有提交可整理");
-    if (commits.length > 100) throw new GitError("一次最多整理 100 条提交，请选择更近的基点");
+    if (!commits.length) throw new GitError(t("No commits to organize after the base"));
+    if (commits.length > 100) throw new GitError(t("Organize at most 100 commits at a time. Choose a closer base."));
     return { base, head, branch: status.branch, commits };
   }
   public async applyRebase(base: string, expectedHead: string, steps: RebaseStep[], expectedBranch?: string): Promise<string> {
-    if ((await this.status()).files.length) throw new GitError("请先提交或 stash 工作区更改，再整理历史");
+    if ((await this.status()).files.length) throw new GitError(t("Commit or stash working changes before organizing history"));
     const plan = await this.rebasePlan(base);
-    if (plan.head !== expectedHead) throw new GitError("HEAD 已变化，请重新生成变基计划");
-    if (expectedBranch !== undefined && plan.branch !== expectedBranch) throw new GitError("当前分支已变化，请重新生成变基计划");
+    if (plan.head !== expectedHead) throw new GitError(t("HEAD has changed. Create a new rebase plan."));
+    if (expectedBranch !== undefined && plan.branch !== expectedBranch) throw new GitError(t("The current branch has changed. Create a new rebase plan."));
     const expected = new Set(plan.commits.map(commit => commit.hash));
-    if (!Array.isArray(steps) || steps.length !== expected.size) throw new GitError("变基计划必须包含范围中的每条提交");
+    if (!Array.isArray(steps) || steps.length !== expected.size) throw new GitError(t("The rebase plan must include every commit in the range"));
     let hasPrevious = false;
     for (const step of steps) {
-      if (!step || !expected.delete(step.hash) || !["pick", "squash", "fixup", "drop"].includes(step.action)) throw new GitError("变基计划存在重复、缺失或无效的提交");
-      if ((step.action === "squash" || step.action === "fixup") && !hasPrevious) throw new GitError("squash / fixup 前必须有保留的提交");
+      if (!step || !expected.delete(step.hash) || !["pick", "squash", "fixup", "drop"].includes(step.action)) throw new GitError(t("The rebase plan has duplicate, missing, or invalid commits"));
+      if ((step.action === "squash" || step.action === "fixup") && !hasPrevious) throw new GitError(t("squash / fixup must follow a retained commit"));
       if (step.action !== "drop") hasPrevious = true;
     }
     const directory = await mkdtemp(path.join(tmpdir(), "gitrism-rebase-"));
@@ -297,7 +298,7 @@ export class GitService {
           { GIT_SEQUENCE_EDITOR: quote(process.execPath) + " " + quote(editorFile), GIT_EDITOR: "true", ELECTRON_RUN_AS_NODE: "1" });
       } catch (error) {
         const message = error instanceof GitError ? error.detail || error.message : String(error);
-        throw new GitError("变基未完成", message + "\n备份分支：" + backup + "\n可解决冲突后继续，或中止操作。");
+        throw new GitError(t("Rebase incomplete"), message + t("\nBackup branch: ") + backup + t("\nResolve conflicts and continue, or abort the operation."));
       }
       return backup;
     } finally { await rm(directory, { recursive: true, force: true }); }
@@ -310,11 +311,11 @@ export class GitService {
     return undefined;
   }
   public async finishOperation(action: "continue" | "abort"): Promise<void> {
-    const operation = await this.operationState(); if (!operation) throw new GitError("没有进行中的合并或变基");
+    const operation = await this.operationState(); if (!operation) throw new GitError(t("No merge or rebase is in progress"));
     await this.run(["-c", "core.editor=true", operation, "--" + action], false, { GIT_EDITOR: "true" });
   }
   public async lineHistory(file: string, start: number, end: number): Promise<string> {
-    this.filePath(file); if (start < 1 || end < start || !Number.isInteger(start) || !Number.isInteger(end)) throw new GitError("无效的行范围");
+    this.filePath(file); if (start < 1 || end < start || !Number.isInteger(start) || !Number.isInteger(end)) throw new GitError(t("Invalid line range"));
     return this.run(["log", "-n50", "--format=medium", "-L", start + "," + end + ":" + file]);
   }
   public async blame(file: string, startLine?: number, endLine?: number): Promise<BlameLine[]> {

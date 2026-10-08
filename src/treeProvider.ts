@@ -1,3 +1,4 @@
+import { t, getLocale } from "./localization";
 import * as vscode from "vscode";
 import { BranchSummary, CommitSummary, GitService, RepositoryStatus } from "./gitService";
 
@@ -32,21 +33,21 @@ export class GitrismTreeProvider implements vscode.TreeDataProvider<GitrismNode>
   public getChildren(node?: GitrismNode): GitrismNode[] {
     if (!node) {
       const statusLabel = this.status
-        ? `当前分支: ${this.status.branch} · ${this.status.files.length} 个变更`
-        : "正在读取仓库状态…";
+        ? t("Current branch: {0} · Changes: {1}", this.status.branch, this.status.files.length)
+        : t("Loading repository status…");
       return [
         new GitrismNode(statusLabel, "status", vscode.TreeItemCollapsibleState.None, "gitrism.showStatus"),
-        new GitrismNode("提交图", "action", vscode.TreeItemCollapsibleState.None, "gitrism.openGraph"),
-        new GitrismNode("底部工作区", "action", vscode.TreeItemCollapsibleState.None, "gitrism.openPanel"),
-        new GitrismNode("分支", "branches", vscode.TreeItemCollapsibleState.Collapsed),
-        new GitrismNode("最近提交", "commits", vscode.TreeItemCollapsibleState.Collapsed)
+        new GitrismNode(t("Commit graph"), "action", vscode.TreeItemCollapsibleState.None, "gitrism.openGraph"),
+        new GitrismNode(t("Bottom workspace"), "action", vscode.TreeItemCollapsibleState.None, "gitrism.openPanel"),
+        new GitrismNode(t("Branches"), "branches", vscode.TreeItemCollapsibleState.Collapsed),
+        new GitrismNode(t("Recent commits"), "commits", vscode.TreeItemCollapsibleState.Collapsed)
       ];
     }
     if (node.kind === "branches") {
       return this.branches.map((branch) => {
         const item = new GitrismNode(`${branch.current ? "● " : "○ "}${branch.name}`, "branch", vscode.TreeItemCollapsibleState.None, "gitrism.showBranches");
-        item.description = branch.remote ? `跟踪 ${branch.remote}` : undefined;
-        item.tooltip = branch.current ? "当前分支" : "点击打开分支切换面板";
+        item.description = branch.remote ? t("Tracking {0}", branch.remote) : undefined;
+        item.tooltip = branch.current ? t("Current branch") : t("Open the branch picker");
         return item;
       });
     }
@@ -54,7 +55,7 @@ export class GitrismTreeProvider implements vscode.TreeDataProvider<GitrismNode>
       return this.commits.map((commit) => {
         const item = new GitrismNode(commit.subject, "commit", vscode.TreeItemCollapsibleState.None, "gitrism.showCommit");
         item.description = `${commit.hash.slice(0, 8)} · ${commit.author} · ${formatDate(commit.date)}`;
-        item.command = { command: "gitrism.showCommit", title: "查看提交", arguments: [commit.hash] };
+        item.command = { command: "gitrism.showCommit", title: t("View commit"), arguments: [commit.hash] };
         return item;
       });
     }
@@ -82,5 +83,5 @@ export class GitrismNode extends vscode.TreeItem {
 
 function formatDate(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(getLocale());
 }

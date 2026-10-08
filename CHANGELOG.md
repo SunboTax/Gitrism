@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Follow the VS Code display language, with English, Simplified Chinese, and Traditional Chinese; use English for unsupported languages.
+- Localize all nine workspace views, sidebar labels, command titles, settings, prompts, notifications, validation errors, accessibility labels, and date formatting.
+- Share translation catalogs between the Extension Host and Webview, with local resources and no additional runtime dependencies.
+- Preserve repository content and raw Git output, and keep localization payloads compatible with the existing content security policy.
+- Verify catalog coverage, placeholder consistency, locale fallback, native confirmations, and browser interactions in all three languages.
+
 ## 0.2.0
 
 - Introduce an original prism visual identity with theme-aware cyan and purple accents, consistent line icons, and clearer typography.

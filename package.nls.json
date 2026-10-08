@@ -1,0 +1,21 @@
+{
+  "extension.description": "See changes. Know history. A local Git workspace for VS Code.",
+  "command.refresh": "Gitrism: Refresh",
+  "command.showStatus": "Gitrism: Show Repository Status",
+  "command.showBranches": "Gitrism: Switch Branch",
+  "command.showHistory": "Gitrism: Show File History",
+  "command.showLineBlame": "Gitrism: Show Line Blame",
+  "command.toggleBlame": "Gitrism: Toggle Inline Blame",
+  "command.showCommit": "Gitrism: Show Commit",
+  "command.sync": "Gitrism: Sync Repository",
+  "command.openGraph": "Gitrism: Open Commit Graph",
+  "command.openPanel": "Gitrism: Open Bottom Panel",
+  "command.chooseRepository": "Gitrism: Choose Repository",
+  "command.showLineHistory": "Gitrism: Show Selected Line History",
+  "setting.inlineBlame.enabled": "Show line authors, commit messages, and commit detail links in the editor.",
+  "setting.inlineBlame.mode": "Annotate the current line by default; allLines annotates the whole file.",
+  "setting.inlineBlame.mode.currentLine": "Annotate only the current line.",
+  "setting.inlineBlame.mode.allLines": "Annotate all lines in the file.",
+  "setting.inlineBlame.maxLines": "Maximum number of lines to decorate when inline blame is enabled.",
+  "setting.sshProxy": "SOCKS5 proxy for SSH GitHub connections, such as 127.0.0.1:7890. Leave empty to use the system SSH configuration."
+}

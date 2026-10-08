@@ -6,6 +6,7 @@ const uri={joinPath:(_base,...parts)=>parts.join('/')};
 const vscode={Uri:uri,workspace:{isTrusted:true},window:{},commands:{executeCommand:async()=>{}},env:{clipboard:{writeText:async()=>{}}}};
 Module._load=function(request,...args){if(request==='vscode')return vscode;return original.call(this,request,...args);};
 const {WorkspaceController}=require('../out/workspaceController');
+const {setLanguage,getLocalization,t:translate}=require('../out/localization');
 Module._load=original;
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve};};
 const flush=()=>new Promise(r=>setImmediate(r));
@@ -45,7 +46,28 @@ test('mutations are serialized across the bottom panel and editor graph',async()
   git.commit=async()=>{commits++;await wait.promise;};
   const first=attach(git),second=attach(git);first.receive({type:'commit',message:'first'});await flush();
   second.receive({type:'commit',message:'second'});await flush();assert.equal(commits,1);
-  assert.ok(second.sent.some(m=>m.type==='error'&&m.message.includes('正在执行')));
+  assert.ok(second.sent.some(m=>m.type==='error'&&m.message.includes('already running')));
   wait.resolve();await flush();assert.ok(first.sent.some(m=>m.type==='committed'));assert.equal(first.sent.filter(m=>m.type==='busy').at(-1).value,false);
   first.controller.dispose();second.controller.dispose();
+});
+test('Webviews receive the host locale and native confirmations use the same translation',async()=>{
+  try {
+    for(const locale of ['en','zh-CN','zh-TW']) {
+      setLanguage(locale);
+      let removed,confirmation;
+      const git=fakeGit();git.deleteBranch=async name=>{removed=name;};
+      vscode.window.showWarningMessage=async(...args)=>{confirmation=args;return args.at(-1);};
+      const c=attach(git);
+      assert.ok(c.webview.html.includes('lang="'+locale+'"'));
+      const payload=c.webview.html.match(/id="gitrism-localization"[^>]*>(.*?)<\/script>/s)?.[1];
+      assert.deepEqual(JSON.parse(payload),getLocalization());
+      assert.ok(c.webview.html.includes('resources/i18n.js'));
+      const name='功能/原文';c.receive({type:'deleteBranch',branch:name});await flush();
+      assert.equal(confirmation[0],translate('Delete local branch {0}?',name));
+      assert.equal(confirmation.at(-1),translate('Execute'));
+      assert.equal(removed,name);
+      assert.ok(c.sent.some(m=>m.type==='notice'&&m.message===translate('Operation completed')));
+      c.controller.dispose();
+    }
+  } finally {setLanguage('en');}
 });

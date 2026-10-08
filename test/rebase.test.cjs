@@ -36,15 +36,15 @@ test('plan validation refuses dirty state, duplicates, first fixup and changed b
   const f=await fixture(t),a=await f.commit('a.txt','a\n','A'),b=await f.commit('b.txt','b\n','B'),plan=await f.git.rebasePlan(f.base);
   const valid=[{hash:a,action:'pick'},{hash:b,action:'pick'}];
   await assert.rejects(f.git.applyRebase(plan.base,plan.head,[{hash:a,action:'fixup'},{hash:b,action:'pick'}]),/fixup/);
-  await assert.rejects(f.git.applyRebase(plan.base,plan.head,[{hash:a,action:'pick'},{hash:a,action:'drop'}]),/重复/);
+  await assert.rejects(f.git.applyRebase(plan.base,plan.head,[{hash:a,action:'pick'},{hash:a,action:'drop'}]),/duplicate/);
   await fs.writeFile(path.join(f.root,'dirty.txt'),'dirty');await assert.rejects(f.git.applyRebase(plan.base,plan.head,valid),/stash/);await fs.unlink(path.join(f.root,'dirty.txt'));
-  await f.git.createBranch('other');await assert.rejects(f.git.applyRebase(plan.base,plan.head,valid,plan.branch),/分支已变化/);
-  await f.git.checkout('main');await f.commit('new.txt','new\n','New');await assert.rejects(f.git.applyRebase(plan.base,plan.head,valid),/HEAD 已变化/);
+  await f.git.createBranch('other');await assert.rejects(f.git.applyRebase(plan.base,plan.head,valid,plan.branch),/branch has changed/);
+  await f.git.checkout('main');await f.commit('new.txt','new\n','New');await assert.rejects(f.git.applyRebase(plan.base,plan.head,valid),/HEAD has changed/);
   assert.equal((await f.git.branches()).filter(b=>b.name.startsWith('gitrism-backup/')).length,0);
 });
 test('reordered conflicting patches can be aborted and the original tip is backed up',async t=>{
   const f=await fixture(t),a=await f.commit('base.txt','one\n','One'),b=await f.commit('base.txt','two\n','Two'),plan=await f.git.rebasePlan(f.base);
-  await assert.rejects(f.git.applyRebase(plan.base,plan.head,[{hash:b,action:'pick'},{hash:a,action:'pick'}]),error=>error.detail.includes('备份分支'));
+  await assert.rejects(f.git.applyRebase(plan.base,plan.head,[{hash:b,action:'pick'},{hash:a,action:'pick'}]),error=>error.detail.includes('Backup branch'));
   assert.equal(await f.git.operationState(),'rebase');assert.equal((await f.git.status()).conflicted,1);
   assert.equal((await f.git.branches()).filter(b=>b.name.startsWith('gitrism-backup/'))[0].hash,b);
   await f.git.finishOperation('abort');assert.equal(await f.git.resolveCommit('HEAD'),b);assert.equal((await f.git.status()).files.length,0);

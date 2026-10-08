@@ -96,6 +96,8 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
 .nav-heading:not(:first-child) { margin-top: 16px; }
 .tab { width: 100%; justify-content: flex-start; gap: 10px; padding: 10px 12px; color: var(--muted); position: relative; }
 .tab .icon { opacity: .85; }
+.tab>span:not(.count) { min-width: 0; white-space: normal; text-align: left; line-height: 1.35; }
+.tab .count { flex: none; }
 .tab.active {
   color: var(--fg); background: color-mix(in srgb, var(--accent) 14%, var(--surface));
   border-color: color-mix(in srgb, var(--accent) 22%, transparent);
@@ -126,6 +128,7 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
 }
 .view-heading { background: radial-gradient(ellipse at top right, color-mix(in srgb, var(--accent) 7%, transparent), transparent 65%); }
 .view-heading h2 { margin-top: 5px; }
+.view-heading .eyebrow { text-transform: uppercase; }
 .view-caption { font-size: 11px; color: var(--muted); }
 .eyebrow { font-size: 9px; color: var(--accent); letter-spacing: 1.4px; font-weight: 600; }
 .section-heading p { color: var(--muted); font-size: 12px; margin: 5px 0 0; }
@@ -292,6 +295,7 @@ summary { color: var(--muted); cursor: pointer; font-size: 11px; }
   .workspace-shell { flex-direction: column; }
   .tabs { width: 100%; flex-direction: row; padding: 5px 12px; gap: 4px; border-right: 0; border-bottom: 1px solid var(--border); }
   .tab { width: auto; flex: none; padding: 7px 10px; font-size: 12px; }
+  .tab>span:not(.count) { white-space: nowrap; }
   .tab.active::before { inset: auto 10px -1px; width: auto; height: 2px; }
   .nav-heading, .nav-signature { display: none; }
   .header { min-height: 52px; padding: 8px 12px; }

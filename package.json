@@ -1,8 +1,8 @@
 {
   "name": "gitrism",
   "displayName": "Gitrism",
-  "description": "See changes. Know history. A local Git workspace for VS Code.",
-  "version": "0.2.0",
+  "description": "%extension.description%",
+  "version": "0.3.0",
   "publisher": "sunbotax",
   "license": "MIT",
   "repository": {
@@ -42,51 +42,51 @@
     "commands": [
       {
         "command": "gitrism.refresh",
-        "title": "Gitrism: Refresh"
+        "title": "%command.refresh%"
       },
       {
         "command": "gitrism.showStatus",
-        "title": "Gitrism: Show Repository Status"
+        "title": "%command.showStatus%"
       },
       {
         "command": "gitrism.showBranches",
-        "title": "Gitrism: Switch Branch"
+        "title": "%command.showBranches%"
       },
       {
         "command": "gitrism.showHistory",
-        "title": "Gitrism: Show File History"
+        "title": "%command.showHistory%"
       },
       {
         "command": "gitrism.showLineBlame",
-        "title": "Gitrism: Show Line Blame"
+        "title": "%command.showLineBlame%"
       },
       {
         "command": "gitrism.toggleBlame",
-        "title": "Gitrism: Toggle Inline Blame"
+        "title": "%command.toggleBlame%"
       },
       {
         "command": "gitrism.showCommit",
-        "title": "Gitrism: Show Commit"
+        "title": "%command.showCommit%"
       },
       {
         "command": "gitrism.sync",
-        "title": "Gitrism: Sync Repository"
+        "title": "%command.sync%"
       },
       {
         "command": "gitrism.openGraph",
-        "title": "Gitrism: Open Commit Graph"
+        "title": "%command.openGraph%"
       },
       {
         "command": "gitrism.openPanel",
-        "title": "Gitrism: Open Bottom Panel"
+        "title": "%command.openPanel%"
       },
       {
         "command": "gitrism.chooseRepository",
-        "title": "Gitrism: Choose Repository"
+        "title": "%command.chooseRepository%"
       },
       {
         "command": "gitrism.showLineHistory",
-        "title": "Gitrism: Show Selected Line History"
+        "title": "%command.showLineHistory%"
       }
     ],
     "menus": {
@@ -160,7 +160,7 @@
         "gitrism.inlineBlame.enabled": {
           "type": "boolean",
           "default": false,
-          "description": "在编辑器中显示行作者、提交消息及提交详情链接。"
+          "description": "%setting.inlineBlame.enabled%"
         },
         "gitrism.inlineBlame.mode": {
           "type": "string",
@@ -169,18 +169,22 @@
             "allLines"
           ],
           "default": "currentLine",
-          "description": "默认仅显示当前行；allLines 显示全部行。"
+          "description": "%setting.inlineBlame.mode%",
+          "enumDescriptions": [
+            "%setting.inlineBlame.mode.currentLine%",
+            "%setting.inlineBlame.mode.allLines%"
+          ]
         },
         "gitrism.inlineBlame.maxLines": {
           "type": "number",
           "default": 1000,
           "minimum": 100,
-          "description": "Maximum number of lines to decorate when inline blame is enabled."
+          "description": "%setting.inlineBlame.maxLines%"
         },
         "gitrism.sshProxy": {
           "type": "string",
           "default": "",
-          "description": "用于 SSH GitHub 连接的 SOCKS5 代理，例如 127.0.0.1:7890。留空则使用系统 SSH 配置。"
+          "description": "%setting.sshProxy%"
         }
       }
     }

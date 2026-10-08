@@ -32,7 +32,7 @@ This preview uses sample repository data. Colors follow your VS Code theme.
 - **Multiple repositories:** select workspace repositories and nested repositories discovered by VS Code's built-in Git extension.
 - **Remote operations:** fetch, pull with `--ff-only`, push, and sync using existing Git credentials, with an optional SSH SOCKS5 proxy.
 
-The editor graph and bottom panel share the same workspace interface. The interface currently uses Chinese labels and combines an original prism identity with the active VS Code theme. Navigation moves from a sidebar to a horizontal strip in narrow windows and short panels. Compact graph rows keep history readable, with author, date, and hash available in commit details.
+The editor graph and bottom panel share the same workspace interface. The interface follows the VS Code display language, supports English, Simplified Chinese, and Traditional Chinese, and combines an original prism identity with the active VS Code theme. Navigation moves from a sidebar to a horizontal strip in narrow windows and short panels. Compact graph rows keep history readable, with author, date, and hash available in commit details.
 
 ## Working changes
 
@@ -42,12 +42,12 @@ Stage files, inspect diffs, and compose commits from the same workspace:
 
 ## Install
 
-Download [`gitrism-0.2.0.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.2.0) from the repository's Releases page.
+Download [`gitrism-0.3.0.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.3.0) from the repository's Releases page.
 
 In VS Code, choose **Extensions: Install from VSIX...**, or run:
 
 ```bash
-code --install-extension gitrism-0.2.0.vsix --force
+code --install-extension gitrism-0.3.0.vsix --force
 ```
 
 For Remote SSH, install the extension on the remote Extension Host. Reload the window after installation if VS Code requests it.
@@ -59,6 +59,16 @@ Open a Git repository and select the **Gitrism** tab in the bottom panel. You ca
 Click the repository name to switch repositories. Select a commit to inspect its details, then click a changed file to open a native diff. In the working changes view, stage the files you want to commit and enter a message. Only staged changes are committed.
 
 Editor context menus provide file history, line blame, an inline blame toggle, and history for selected lines.
+
+## Language
+
+Gitrism follows the display language selected in VS Code. English, Simplified Chinese (`zh-CN`), and Traditional Chinese (`zh-TW`) are supported; other display languages use English.
+
+Run **Configure Display Language** from the Command Palette, select a language, and restart VS Code when prompted. The workspace interface, sidebar, commands, settings, prompts, notifications, and dates use the selected language. Remote SSH uses the VS Code client display language as well.
+
+Commit messages, author names, references, paths, and raw Git output retain their original text. The brand slogan remains in English. No separate Gitrism language setting is needed.
+
+See [localization notes](docs/localization.md) for translation maintenance.
 
 ## Settings
 
@@ -109,11 +119,11 @@ npm test
 npm run package
 ```
 
-Press `F5` in VS Code to launch an Extension Development Host. The package command creates `gitrism-0.2.0.vsix` locally; it does not publish the extension.
+Press `F5` in VS Code to launch an Extension Development Host. The package command creates `gitrism-0.3.0.vsix` locally; it does not publish the extension.
 
 Tests create temporary Git repositories and cover topology, file paths and renames, staging, comparisons, stashes, worktrees, conflicts, and interactive rebase. Browser tests use Chrome to verify the real DOM, content security policy, escaping, draft persistence, themes, and narrow layouts.
 
-Set `GITRISM_CHROME` if Chrome is installed at a different path. Browser tests report a skip when Chrome is unavailable. Screenshots are written to `/tmp/gitrism-preview` by default; override this with `GITRISM_SCREENSHOTS`.
+Set `GITRISM_CHROME` if Chrome is installed at a different path. Browser tests report a skip when Chrome is unavailable. Screenshots are written to language subdirectories under `/tmp/gitrism-preview` by default; override this with `GITRISM_SCREENSHOTS`.
 
 ## Scope and privacy
 

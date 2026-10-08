@@ -6,6 +6,14 @@ Gitrism is a personal Git workspace for Visual Studio Code. Explore commit histo
 
 No account or subscription is required. Gitrism has no telemetry, external avatar requests, AI service, or cloud backend.
 
+## Workspace preview
+
+Commit history and details in a dark theme:
+
+![Gitrism commit graph and details](docs/images/workspace-dark.png)
+
+This preview uses sample repository data. Colors follow your VS Code theme.
+
 ## Features
 
 - **Commit graph:** actual parent relationships, branch and merge lanes, reference labels, and incremental loading of up to 2,000 commits.
@@ -26,17 +34,11 @@ No account or subscription is required. Gitrism has no telemetry, external avata
 
 The editor graph and bottom panel share the same workspace interface. The interface currently uses Chinese labels and combines an original prism identity with the active VS Code theme. Navigation moves from a sidebar to a horizontal strip in narrow windows and short panels. Compact graph rows keep history readable, with author, date, and hash available in commit details.
 
-## Workspace preview
+## Working changes
 
-Commit history and details in a dark theme:
-
-![Gitrism commit graph and details](docs/images/workspace-dark.png)
-
-Working changes and commit composition:
+Stage files, inspect diffs, and compose commits from the same workspace:
 
 ![Gitrism working changes](docs/images/working-changes.png)
-
-These previews use sample repository data. Colors follow your VS Code theme.
 
 ## Install
 

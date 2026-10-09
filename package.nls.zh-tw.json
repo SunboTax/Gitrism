@@ -17,5 +17,8 @@
   "setting.inlineBlame.mode.currentLine": "僅註釋當前行。",
   "setting.inlineBlame.mode.allLines": "註釋檔案中的所有行。",
   "setting.inlineBlame.maxLines": "啟用行內作者註釋時，允許註釋的最大檔案行數。",
-  "setting.sshProxy": "用於 SSH GitHub 連線的 SOCKS5 代理，例如 127.0.0.1:7890。留空則使用系統 SSH 配置。"
+  "setting.sshProxy": "用於 SSH GitHub 連線的 SOCKS5 代理，例如 127.0.0.1:7890。留空則使用系統 SSH 配置。",
+  "setting.codeLens.enabled": "在函式和類上方顯示程式碼歸屬與歷史入口。基於當前保留程式碼行；跳過尚未儲存的文件。",
+  "setting.codeLens.maxLines": "CodeLens 程式碼歸屬功能處理的最大檔案行數。",
+  "setting.codeLens.maxSymbols": "每個檔案中顯示歸屬資訊的函式和類位置上限。"
 }

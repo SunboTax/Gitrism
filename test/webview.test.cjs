@@ -24,9 +24,9 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
     commits,tags:[{name:'v0.1.0',date:commits[0].date,subject:'Release',hash:hash(1)}],stashes:[{ref:'stash@{0}',hash:hash(3),subject:'WIP workspace changes',date:commits[0].date}],worktrees:[{path:'/workspace/project',branch:'main',hash:hash(1)},{path:'/workspace/project-feature',branch:'feature/graph',hash:hash(3)}],hasMore:true,options:{},limit:100};
   const details=Object.fromEntries(commits.map(c=>[c.hash,{...c,email:'gitrism@example.invalid',message:c.subject,files:[{path:'src/app.ts',status:'M'},{path:'resources/workspace.css',status:'A'}],stats:'2 files changed, 84 insertions(+), 12 deletions(-)'}]));
   const theme=':root{--vscode-font-family:system-ui;--vscode-font-size:13px;--vscode-foreground:#ddd;--vscode-editor-background:#1e1e1e;--vscode-sideBar-background:#252526;--vscode-panel-border:#444;--vscode-input-background:#333;--vscode-input-foreground:#ddd;--vscode-descriptionForeground:#999;--vscode-charts-blue:#75baff;--vscode-textLink-foreground:#75baff}@media(prefers-color-scheme:light){:root{--vscode-foreground:#333;--vscode-editor-background:#fff;--vscode-sideBar-background:#f5f5f5;--vscode-panel-border:#ddd;--vscode-input-background:#eee;--vscode-input-foreground:#333;--vscode-descriptionForeground:#666;--vscode-charts-blue:#176abb;--vscode-textLink-foreground:#176abb}}';
-  const bridge=`const fixture=${JSON.stringify(data)}, details=${JSON.stringify(details)}; let saved; window.sent=[];window.deliver=m=>window.dispatchEvent(new MessageEvent('message',{data:m}));window.acquireVsCodeApi=()=>({getState:()=>saved,setState:s=>{saved=structuredClone(s)},postMessage:m=>{sent.push(m);setTimeout(()=>{if(m.type==='ready'||m.type==='refresh')deliver({type:'data',data:fixture});if(m.type==='details')deliver({type:'details',request:m.request,detail:details[m.hash]});if(m.type==='search'){fixture.options={query:m.query,searchBy:m.searchBy,ref:m.ref,file:m.file};deliver({type:'data',data:fixture})}if(m.type==='compare')deliver({type:'comparison',request:m.request,comparison:{from:m.from,to:m.to,ahead:1,behind:0,files:[{status:'M',path:'src/app.ts'}],stats:'1 file changed',commits:fixture.commits.slice(0,1)}});if(m.type==='timelineHistory')deliver({type:'timelineHistory',request:m.request,file:m.file,commits:fixture.commits.slice(1)})},0)}});`;
+  const bridge=`const fixture=${JSON.stringify(data)}, details=${JSON.stringify(details)}; let saved; window.sent=[];window.deliver=m=>window.dispatchEvent(new MessageEvent('message',{data:m}));window.acquireVsCodeApi=()=>({getState:()=>saved,setState:s=>{saved=structuredClone(s)},postMessage:m=>{sent.push(m);setTimeout(()=>{if(m.type==='ready'||m.type==='refresh'){deliver({type:'data',data:fixture});deliver({type:'activity',root:fixture.root,activity:{email:'gitrism@example.invalid',timestamps:[Math.floor(Date.now()/1000)-86400,Math.floor(Date.now()/1000)-86400,Math.floor(Date.now()/1000)-86400*3]}})}if(m.type==='details')deliver({type:'details',request:m.request,detail:details[m.hash]});if(m.type==='search'){fixture.options={...m};delete fixture.options.type;deliver({type:'data',data:fixture})}if(m.type==='compare')deliver({type:'comparison',request:m.request,comparison:{from:m.from,to:m.to,ahead:1,behind:0,files:[{status:'M',path:'src/app.ts'}],stats:'1 file changed',commits:fixture.commits.slice(0,1)}});if(m.type==='timelineHistory')deliver({type:'timelineHistory',request:m.request,file:m.file,commits:fixture.commits.slice(1)})},0)}});`;
   const localization=JSON.stringify({locale,messages}).replace(/</g,'\\u003c');
-  const html='<!DOCTYPE html><html lang="'+locale+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'self\'; script-src \'nonce-test\';"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/timeline.css"></head><body><main id="app"></main><div id="toast" role="status" hidden></div><script nonce="test" src="/bridge.js"></script><script id="gitrism-localization" type="application/json" nonce="test">'+localization+'</script><script nonce="test" src="/i18n.js"></script><script nonce="test" src="/graphLayout.js"></script><script nonce="test" src="/workspace.js"></script></body></html>';
+  const html='<!DOCTYPE html><html lang="'+locale+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'self\'; script-src \'nonce-test\';"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/timeline.css"></head><body><main id="app"></main><div id="toast" role="status" hidden></div><script nonce="test" src="/bridge.js"></script><script id="gitrism-localization" type="application/json" nonce="test">'+localization+'</script><script nonce="test" src="/i18n.js"></script><script nonce="test" src="/graphLayout.js"></script><script nonce="test" src="/activity.js"></script><script nonce="test" src="/workspace.js"></script></body></html>';
   const rebaseBridge=`const originalApi=acquireVsCodeApi;window.acquireVsCodeApi=()=>{const api=originalApi(),post=api.postMessage;api.postMessage=m=>{post(m);if(m.type==='rebasePlan')setTimeout(()=>deliver({type:'rebasePlan',request:m.request,plan:{base:m.ref,head:fixture.commits[0].hash,branch:'main',commits:fixture.commits.slice(1).reverse()}}),0)};return api};`;
   const server=http.createServer(async(req,res)=>{
     try {
@@ -34,7 +34,7 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
       if(name==='/') {res.setHeader('content-type','text/html');res.end(html);return;}
       if(name==='/bridge.js'){res.setHeader('content-type','text/javascript');res.end(bridge+rebaseBridge);return;}
       if(name==='/theme.css'){res.setHeader('content-type','text/css');res.end(theme);return;}
-      if(!['/workspace.css','/timeline.css','/workspace.js','/graphLayout.js','/i18n.js'].includes(name)){res.writeHead(404);res.end();return;}
+      if(!['/workspace.css','/timeline.css','/workspace.js','/graphLayout.js','/i18n.js','/activity.js'].includes(name)){res.writeHead(404);res.end();return;}
       res.setHeader('content-type',name.endsWith('.js')?'text/javascript':'text/css');res.end(await fs.readFile(path.join(__dirname,'../resources',name)));
     }catch(error){res.writeHead(500);res.end(String(error));}
   });
@@ -55,7 +55,7 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   const call=(method,params={})=>new Promise((resolve,reject)=>{const n=++id;pending.set(n,{resolve,reject});ws.send(JSON.stringify({id:n,method,params}));});
   const evaluate=async expression=>{const r=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(JSON.stringify(r.exceptionDetails));return r.result.value;};
   const until=async expression=>{for(let i=0;i<80;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,25));}throw new Error('Condition did not become true: '+expression);};
-  const click=async selector=>{await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);};
+  const click=async selector=>{await evaluate(`{const node=document.querySelector(${JSON.stringify(selector)});if(typeof node.click==='function')node.click();else node.dispatchEvent(new MouseEvent('click',{bubbles:true}));}`);};
   await call('Runtime.enable');await call('Log.enable');await call('Page.enable');
   await call('Emulation.setDeviceMetricsOverride',{width:1440,height:780,deviceScaleFactor:1,mobile:false});
   await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
@@ -71,7 +71,29 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   await evaluate("fixture.commits[2].subject='中文提交消息保持原文';deliver({type:'data',data:fixture})");
   assert.equal(await evaluate("document.querySelectorAll('.commit-subject')[2].lastElementChild.textContent"),'中文提交消息保持原文');
   await evaluate("fixture.commits[2].subject='Draw topology from commit parents';deliver({type:'data',data:fixture})");
+  await until("document.querySelectorAll('.activity-day').length>80");
+  assert.equal(await evaluate("document.querySelector('.activity-stats strong').textContent"),'3');
+  assert.equal(await evaluate("document.querySelectorAll('.activity-stats strong')[1].textContent"),'2');
+  assert.equal(await evaluate("document.querySelector('.activity-identity').textContent"),'gitrism@example.invalid');
+  await click('.advanced-search summary');
+  await evaluate("document.getElementById('since').value='2026-10-01';document.getElementById('until').value='2026-10-05';document.getElementById('authors').value='Chen; Tester';document.getElementById('merges').value='exclude';document.getElementById('first-parent').checked=true");
+  await click('.advanced-panel [data-action=search]');await until("fixture.options.firstParent===true");
+  assert.deepEqual(await evaluate("fixture.options.authors"),['Chen','Tester']);
+  assert.equal(await evaluate("fixture.options.merges"),'exclude');
+  assert.equal(await evaluate("fixture.options.since"),await evaluate("GitrismActivity.dayBounds('2026-10-01').since"));
+  await click('[data-action=clearSearch]');await until("fixture.options.query===''");
+  await click('.activity-day[data-count="2"]');await until("fixture.options.authorEmail==='gitrism@example.invalid'");
+  assert.equal(await evaluate("fixture.options.merges"),'exclude');
+  assert.equal(await evaluate("fixture.options.searchBy"),'message');
+  assert.ok(await evaluate("fixture.options.since && fixture.options.until"));
+  await click('[data-action=clearSearch]');await until("fixture.options.authorEmail===undefined");
   await click('.commit-row');await until("document.querySelector('.detail-header h2')?.textContent==='Merge feature into main'");
+  await click('[data-action=clearSelection]');await until("document.querySelector('.activity-grid')!==null");
+  await evaluate("{const period=document.getElementById('activity-period');period.value='52';period.dispatchEvent(new Event('change',{bubbles:true}));}");
+  assert.ok(await evaluate("document.querySelectorAll('.activity-day').length>350"));
+  await evaluate("{const period=document.getElementById('activity-period');period.value='0';period.dispatchEvent(new Event('change',{bubbles:true}));}");
+  await click('.commit-row');await until("document.querySelector('.detail-header h2')?.textContent==='Merge feature into main'");
+
   await click('.file-diff');assert.equal(await evaluate("sent.at(-1).type"),'diff');
   const output=path.join(process.env.GITRISM_SCREENSHOTS || '/tmp/gitrism-preview',locale);await fs.mkdir(output,{recursive:true});
   const screenshot=async name=>{
@@ -120,6 +142,7 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   await call('Emulation.setDeviceMetricsOverride',{width:480,height:740,deviceScaleFactor:1,mobile:false});
   assert.ok(await evaluate("document.documentElement.scrollWidth<=480"));
   await screenshot('narrow.png');
+  await click('[data-action=clearSelection]');await until("document.querySelector('.activity-svg')?.getAttribute('viewBox')==='0 0 390 128'");await screenshot('activity-narrow.png');
   // All views must fit a small window; cards/forms must not overflow the document.
   await call('Emulation.setDeviceMetricsOverride',{width:320,height:740,deviceScaleFactor:1,mobile:false});
   for(const tab of ['graph','changes','branches','tags','stashes','worktrees','compare','timeline','rebase']) {
@@ -127,7 +150,7 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
     assert.ok(await evaluate("document.documentElement.scrollWidth<=320"),tab+' should fit a 320px window');
     assert.ok(await evaluate("document.querySelector('.content').scrollWidth<=document.querySelector('.content').clientWidth"),tab+' content should not overflow horizontally');
   }
-  await click('[data-tab="graph"]');await click('[data-action="clearSearch"]');
+  await click('[data-tab="graph"]');await click('[data-action="clearSearch"]');await until("document.querySelector('.activity-svg')?.getAttribute('viewBox')==='0 0 208 128'");
   await call('Emulation.setDeviceMetricsOverride',{width:1440,height:300,deviceScaleFactor:1,mobile:false});
   await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
   // A long, filtered history exercises wrapping, contained scrolling and selection.
@@ -138,5 +161,15 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   await evaluate("document.getElementById('graph-scroll').scrollTop=160;deliver({type:'data',data:fixture})");
   assert.equal(await evaluate("document.getElementById('graph-scroll').scrollTop"),160);
   await screenshot('panel.png');
+  await click('.advanced-search summary');
+  assert.ok(await evaluate("document.querySelector('.advanced-panel').getBoundingClientRect().bottom<=document.querySelector('.footer').getBoundingClientRect().top+1"));
+  await evaluate("document.querySelector('.advanced-panel').scrollTop=1000");
+  assert.ok(await evaluate("document.querySelector('.advanced-panel [data-action=search]').getBoundingClientRect().bottom<=document.querySelector('.advanced-panel').getBoundingClientRect().bottom"));await screenshot('advanced-panel.png');
+  await click('.advanced-search summary');
+  await call('Emulation.setDeviceMetricsOverride',{width:1440,height:780,deviceScaleFactor:1,mobile:false});
+  await click('[data-action=clearSearch]');await until("fixture.options.query===''");
+  await evaluate("fixture.commits=fixture.commits.slice(0,16).map((c,i)=>({...c,subject:['Add personal activity calendar','Improve code attribution links','Support literal author filters','Keep remote dates in client timezone','Refine compact workspace layout','Add retained-line author details','Validate advanced search requests','Handle missing repository identity'][i%8]}));fixture.hasMore=false;deliver({type:'data',data:fixture});document.getElementById('graph-scroll').scrollTop=0;deliver({type:'activity',root:fixture.root,activity:{email:'gitrism@example.invalid',timestamps:Array.from({length:90},(_,i)=>Array.from({length:i%7<5?(i*13)%9:0},()=>Math.floor(Date.now()/1000)-i*86400)).flat()}})");
+  await screenshot('activity.png');
+  await click('.advanced-search summary');await screenshot('advanced-search.png');
   assert.deepEqual(errors,[],'No script or CSP errors should occur');
 });

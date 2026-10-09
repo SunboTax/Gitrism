@@ -6,15 +6,16 @@
   const localization = JSON.parse(document.getElementById('gitrism-localization')?.textContent || '{}');
   const locale = GitrismI18n.resolveLocale(localization.locale);
   const t = GitrismI18n.createTranslator(localization.messages);
-  let state = { tab: 'graph', draft: '', selected: '', compareFrom: 'HEAD', compareTo: '', ...saved };
+  let state = { tab: 'graph', draft: '', selected: '', compareFrom: 'HEAD', compareTo: '', ...saved, searchDraft: undefined };
   let data, detail, comparison, busy = false, loading = true, detailRequest = 0, compareRequest = 0, serial = 0;
+  let activity, activityError, activityWidth = 280;
   let detailLoading = false, comparisonLoading = false, toastTimer, timelineCommits = [], timelineLoading = false, timelineRequest = 0, rebasePlan, rebaseLoading = false, rebaseRequest = 0;
   const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const tr = (...args) => e(t(...args));
   const date = value => { const d = new Date(value); return Number.isNaN(d.getTime()) ? value : d.toLocaleString(locale); };
   const short = hash => (hash || '').slice(0, 8);
   const send = (type, values = {}) => vscode.postMessage({ type, ...values });
-  const persist = () => vscode.setState(state);
+  const persist = () => { const {searchDraft, ...savedState} = state; vscode.setState(savedState); };
   // Original line icons share a single coordinate system and inherit the theme color.
   const paths = {
     prism: 'M12 2 22 19H2Z M12 2v17 M2 19l10-6 10 6',
@@ -78,18 +79,57 @@
     };
     return commits.map((c, i) => `<button class="commit-row ${state.selected === c.hash ? 'selected' : ''}" data-action="select" data-hash="${e(c.hash)}" aria-pressed="${state.selected === c.hash}" title="${e(c.subject)}"><span class="graph-cell">${svg(graph.rows[i],i)}</span><span class="commit-subject">${c.refs ? `<span class="refs">${c.refs.split(', ').map(r => `<span class="ref ${r.startsWith('tag:') ? 'tag' : r.startsWith('HEAD') ? 'head' : ''}">${e(r)}</span>`).join('')}</span>` : ''}<span>${e(c.subject)}</span></span><span class="author"><span class="avatar">${e(c.author.slice(0,1).toUpperCase())}</span>${e(c.author)}</span><time title="${e(date(c.date))}">${e(new Date(c.date).toLocaleDateString(locale))}</time><code>${short(c.hash)}</code></button>`).join('');
   }
+  function activityPane() {
+    return `<section id="personal-activity" class="personal-activity" aria-label="${tr("Your activity")}">${activityContent()}</section>`;
+  }
+  function activityContent() {
+    const heading = `<span class="eyebrow">${tr("Your repository rhythm")}</span><h2>${tr("Your activity")}</h2>`;
+    if (activityError) return heading + `<p class="muted">${e(activityError)}</p>${btn(t("Retry"),'refresh')}`;
+    if (!activity) return heading + `<p class="muted">${tr("Loading your activity…")}</p>`;
+    if (!activity.email) return heading + `<p class="muted">${tr("Set user.email in this repository to see your personal activity.")}</p><code>git config user.email &quot;you@example.com&quot;</code>`;
+    const period = [13,26,52].includes(Number(state.activityWeeks)) ? Number(state.activityWeeks) : 0;
+    const calendar = GitrismActivity.calendar(activity.timestamps, period || GitrismActivity.autoWeeks(activityWidth));
+    const width = calendar.weeks*14+26;
+    const svg = `<svg class="activity-svg" viewBox="0 0 ${width} 128" width="${width}" height="128" role="group" aria-label="${tr('Activity over {0} weeks',calendar.weeks)}">${calendar.months.map(month=>`<text class="activity-label" x="${26+month.column*14}" y="12">${e(month.date.toLocaleDateString(locale,{month:'short'}))}</text>`).join('')}${[0,2,4].map(row=>`<text class="activity-label" x="0" y="${34+row*14}">${e(calendar.days[row].date.toLocaleDateString(locale,{weekday:'narrow'}))}</text>`).join('')}${calendar.days.map(day=>day.future ? '' : `<rect class="activity-day activity-level-${day.level}" x="${26+day.column*14}" y="${24+day.row*14}" width="10" height="10" rx="2" data-day="${day.key}" data-count="${day.count}" tabindex="0" role="button" aria-label="${tr('{0}: {1} commits',day.key,day.count)}"><title>${tr('{0}: {1} commits',day.key,day.count)}</title></rect>`).join('')}</svg>`;
+    return `${heading}<p class="activity-identity" title="${e(activity.email)}">${e(activity.email)}</p><div class="activity-stats"><div><strong>${calendar.commits}</strong><span>${tr("Commits")}</span></div><div><strong>${calendar.activeDays}</strong><span>${tr("Active days")}</span></div></div><div class="activity-controls"><span>${e(calendar.start.toLocaleDateString(locale,{month:'short',day:'numeric'}))} – ${e(calendar.end.toLocaleDateString(locale,{month:'short',day:'numeric'}))}</span><select id="activity-period" aria-label="${tr("Activity period")}">${[[0,t("Auto")],[13,t("13 weeks")],[26,t("26 weeks")],[52,t("52 weeks")]].map(([value,label])=>`<option value="${value}" ${period===value?'selected':''}>${e(label)}</option>`).join('')}</select></div><div class="activity-grid">${svg}</div><div class="activity-legend"><span>${tr("Less")}</span>${[0,1,2,3,4].map(level=>`<span class="activity-swatch activity-level-${level}"></span>`).join('')}<span>${tr("More")}</span></div><p class="activity-note">${tr("Only your non-merge commits across local references. Days use commit time in your timezone.")}</p><p class="activity-invitation">${icon('search')}${tr("Select a day to explore your commits.")}</p>`;
+  }
+  function updateActivity() {
+    const node = document.getElementById('personal-activity');
+    if (node) node.innerHTML = activityContent();
+  }
+  const activityObserver = new ResizeObserver(entries=>{
+    const width = entries[0]?.contentRect.width || 280;
+    if (GitrismActivity.autoWeeks(width) !== GitrismActivity.autoWeeks(activityWidth)) { activityWidth=width; if (!Number(state.activityWeeks)) updateActivity(); }
+    else activityWidth=width;
+  });
+  function localInputDate(iso) { return iso ? GitrismActivity.dayKey(new Date(iso)) : ''; }
+  function advancedFilters(opts) {
+    const active = [opts.since,opts.until,opts.authors?.length,opts.authorEmail,opts.merges && opts.merges!=='all',opts.firstParent].filter(Boolean).length;
+    return `<details class="advanced-search" ${state.advancedOpen ? 'open' : ''}><summary>${icon('search')}${tr("Advanced")}${active ? `<span class="count">${active}</span>` : ''}${icon('chevron')}</summary><div class="advanced-panel"><div class="advanced-title">${tr("Advanced search")}</div><div class="advanced-dates"><label>${tr("From date")}<input id="since" type="date" value="${e(localInputDate(opts.since))}"></label><label>${tr("Through date")}<input id="until" type="date" value="${e(localInputDate(opts.until))}"></label></div><label>${tr("Authors (separate with semicolons)")}<input id="authors" value="${e((opts.authors || []).join('; '))}" placeholder="${tr("Name or email; another author")}" ${opts.authorEmail?'disabled':''}></label><label>${tr("Merge commits")}<select id="merges">${[['all',t("Include merges")],['exclude',t("Exclude merges")],['only',t("Only merges")]].map(([value,label])=>`<option value="${value}" ${opts.merges===value?'selected':''}>${e(label)}</option>`).join('')}</select></label><label class="check-option"><input id="first-parent" type="checkbox" ${opts.firstParent?'checked':''}>${tr("Follow first parent only")}</label><label class="check-option"><input id="only-mine" type="checkbox" ${opts.authorEmail?'checked':''} ${!activity?.email?'disabled':''}>${tr("Only my commits")}</label><p class="muted">${tr("Authors are matched literally (any match). Other filters combine. Dates use commit time in your timezone.")}</p><div class="advanced-actions">${btn(t("Last 7 days"),'lastWeek')}${btn(t("Apply filters"),'search','',true)}</div></div></details>`;
+  }
+  function readSearch() {
+    const value=id=>document.getElementById(id)?.value || '';
+    const own=document.getElementById('only-mine')?.checked;
+    const since=value('since'), until=value('until');
+    return {query:value('search'),searchBy:own && value('search-by')==='author'?'message':value('search-by'),ref:value('ref'),file:value('file-filter'),authors:own?[]:value('authors').split(';').map(author=>author.trim()).filter(Boolean),authorEmail:own?activity?.email:undefined,since:since?GitrismActivity.dayBounds(since).since:undefined,until:until?GitrismActivity.dayBounds(until).until:undefined,merges:value('merges')||'all',firstParent:document.getElementById('first-parent')?.checked||false};
+  }
+  function searchDay(key) {
+    if (!activity?.email || busy) return;
+    search({authorEmail:activity.email,merges:'exclude',searchBy:'message',...GitrismActivity.dayBounds(key)});
+  }
   function detailPane() {
     if (detailLoading) return empty(t("Loading commit…"));
+    if (!detail && state.tab==='graph') return activityPane();
     if (!detail) return empty(t("Select a commit"), t("Inspect changed files, navigate parents, and open diffs."));
     const d = detail;
-    return `<div class="detail-header"><span class="eyebrow">${tr("Commit details")}${d.parents.length > 1 ? t(" · Merge commit") : ''}</span><h2>${e(d.message.split('\n')[0])}</h2><div class="person"><span class="avatar large">${e(d.author.slice(0,1))}</span><div><strong>${e(d.author)}</strong><small>${e(date(d.date))}</small></div></div>${btn(short(d.hash), 'copy', `data-value="${e(d.hash)}" title="${tr("Copy full hash")}"`)}<div class="parent-links">${d.parents.map(p => btn(t("Parent ") + short(p), 'select', `data-hash="${e(p)}"`)).join('')}</div></div><div class="detail-actions">${btn(t("Compare with HEAD"),'compareHead')}${btn(t("Create branch"),'createBranch',`data-ref="${e(d.hash)}"`)}<details class="more-actions"><summary>${tr("More actions")} ${icon('chevron')}</summary><div class="action-menu">${btn(t("Set comparison start"),'compareStart')}${btn(t("Create tag"),'createTag',`data-ref="${e(d.hash)}"`)}${btn(t("Organize subsequent history"),'rebasePlan',`data-ref="${e(d.hash)}"`)}${btn('Cherry-pick','operation',`data-operation="cherry-pick" data-ref="${e(d.hash)}"`)}${btn('Revert','operation',`data-operation="revert" data-ref="${e(d.hash)}"`)}</div></details></div>${d.message.includes('\n') ? `<pre class="commit-body">${e(d.message.slice(d.message.indexOf('\n')+1).trim())}</pre>` : ''}<h3>${tr("Changed files")} <span class="count">${d.files.length}</span></h3><div class="file-list">${changedFiles(d.files, d.parents[0] || 'EMPTY', d.hash)}</div><details><summary>${tr("Change statistics · Relative to ")}${d.parents.length > 1 ? t("first parent") : t("parent")}</summary><pre>${e(d.stats)}</pre></details>`;
+    return `${state.tab==='graph'?btn(t("Back to your activity"),'clearSelection','class="back-activity"'):''}<div class="detail-header"><span class="eyebrow">${tr("Commit details")}${d.parents.length > 1 ? t(" · Merge commit") : ''}</span><h2>${e(d.message.split('\n')[0])}</h2><div class="person"><span class="avatar large">${e(d.author.slice(0,1))}</span><div><strong>${e(d.author)}</strong><small>${e(date(d.date))}</small></div></div>${btn(short(d.hash), 'copy', `data-value="${e(d.hash)}" title="${tr("Copy full hash")}"`)}<div class="parent-links">${d.parents.map(p => btn(t("Parent ") + short(p), 'select', `data-hash="${e(p)}"`)).join('')}</div></div><div class="detail-actions">${btn(t("Compare with HEAD"),'compareHead')}${btn(t("Create branch"),'createBranch',`data-ref="${e(d.hash)}"`)}<details class="more-actions"><summary>${tr("More actions")} ${icon('chevron')}</summary><div class="action-menu">${btn(t("Set comparison start"),'compareStart')}${btn(t("Create tag"),'createTag',`data-ref="${e(d.hash)}"`)}${btn(t("Organize subsequent history"),'rebasePlan',`data-ref="${e(d.hash)}"`)}${btn('Cherry-pick','operation',`data-operation="cherry-pick" data-ref="${e(d.hash)}"`)}${btn('Revert','operation',`data-operation="revert" data-ref="${e(d.hash)}"`)}</div></details></div>${d.message.includes('\n') ? `<pre class="commit-body">${e(d.message.slice(d.message.indexOf('\n')+1).trim())}</pre>` : ''}<h3>${tr("Changed files")} <span class="count">${d.files.length}</span></h3><div class="file-list">${changedFiles(d.files, d.parents[0] || 'EMPTY', d.hash)}</div><details><summary>${tr("Change statistics · Relative to ")}${d.parents.length > 1 ? t("first parent") : t("parent")}</summary><pre>${e(d.stats)}</pre></details>`;
   }
   function changedFiles(files, from, to) {
     return files.map(f => `<button class="file-diff" data-action="diff" data-file="${e(f.path)}" data-old-file="${e(f.oldPath || f.path)}" data-from="${e(f.from || (f.status === 'A' ? 'EMPTY' : from))}" data-to="${e(f.to || (f.status === 'D' ? 'EMPTY' : to))}"><span class="file-status status-${e(f.status)}">${e(f.status)}</span><span title="${e(f.path)}">${f.oldPath ? e(f.oldPath) + ' → ' : ''}${e(f.path)}</span><span class="diff-arrow">${icon('external')}</span></button>`).join('') || empty(t("No file differences"));
   }
   function graphView() {
-    const opts = data.options || {};
-    return `<div class="view-heading"><div><span class="eyebrow">${tr("Repository history")}</span><h2>${tr("Commit graph")} <span class="count">${data.commits.length}${data.hasMore ? '+' : ''}</span></h2></div><span class="view-caption">${tr("Every change leaves a trace.")}</span></div><div class="filters"><select id="ref" aria-label="${tr("History reference")}">${refOptions(opts.ref)}</select><div class="search-control">${icon('search')}<select id="search-by" aria-label="${tr("Search field")}"><option value="message">${tr("Message")}</option><option value="author" ${opts.searchBy==='author'?'selected':''}>${tr("Author")}</option><option value="hash" ${opts.searchBy==='hash'?'selected':''}>${tr("Hash / reference")}</option></select><input id="search" type="search" value="${e(opts.query)}" placeholder="${tr("Search commits, press Enter")}" aria-label="${tr("Search commits")}"></div><input id="file-filter" value="${e(opts.file)}" placeholder="${tr("File path (optional)")}" aria-label="${tr("File history path")}">${btn(t("Filter"),'search','',true)}${btn(t("Clear"),'clearSearch')}</div>${opts.query || opts.file ? `<div class="hint">${tr("Filtered results; excluded parent commits are not shown in the graph.")}</div>` : ''}<div class="graph-layout"><section class="graph-area ${layoutGraph(data.commits).width <= 3 ? 'graph-compact' : ''}" aria-label="${tr("Commit graph")}"><div class="graph-scroll" id="graph-scroll"><div class="graph-head"><span>${tr("Graph")}</span><span>${tr("Message and references")}</span><span>${tr("Author")}</span><span>${tr("Date")}</span><span>${tr("Hash")}</span></div>${graphRows(data.commits) || empty(t("No matching commits"), t("Create your first commit in Working changes to start a new repository."))}${data.hasMore ? btn(t("Load more commits"),'more','class="load-more"') : ''}<div class="graph-foot">${tr('Commits: {0} · Topological order', data.commits.length)}${data.hasMore ? '' : t(" · End of results")}</div></div></section><aside id="detail-pane" class="detail-pane" aria-label="${tr("Commit details")}">${detailPane()}</aside></div>`;
+    const opts = state.searchDraft || data.options || {};
+    return `<div class="view-heading"><div><span class="eyebrow">${tr("Repository history")}</span><h2>${tr("Commit graph")} <span class="count">${data.commits.length}${data.hasMore ? '+' : ''}</span></h2></div><span class="view-caption">${tr("Every change leaves a trace.")}</span></div><div class="filters"><select id="ref" aria-label="${tr("History reference")}">${refOptions(opts.ref)}</select><div class="search-control">${icon('search')}<select id="search-by" aria-label="${tr("Search field")}"><option value="message">${tr("Message")}</option><option value="author" ${opts.authorEmail?'disabled':''} ${opts.searchBy==='author'?'selected':''}>${tr("Author")}</option><option value="hash" ${opts.searchBy==='hash'?'selected':''}>${tr("Hash / reference")}</option></select><input id="search" type="search" value="${e(opts.query)}" placeholder="${tr("Search commits, press Enter")}" aria-label="${tr("Search commits")}"></div><input id="file-filter" value="${e(opts.file)}" placeholder="${tr("File path (optional)")}" aria-label="${tr("File history path")}">${advancedFilters(opts)}${btn(t("Filter"),'search','',true)}${btn(t("Clear"),'clearSearch')}</div>${opts.query || opts.file || opts.authors?.length || opts.authorEmail || opts.since || opts.until || opts.firstParent || (opts.merges && opts.merges!=='all') ? `<div class="hint">${tr("Filtered results; excluded parent commits are not shown in the graph.")}</div>` : ''}<div class="graph-layout"><section class="graph-area ${layoutGraph(data.commits).width <= 3 ? 'graph-compact' : ''}" aria-label="${tr("Commit graph")}"><div class="graph-scroll" id="graph-scroll"><div class="graph-head"><span>${tr("Graph")}</span><span>${tr("Message and references")}</span><span>${tr("Author")}</span><span>${tr("Date")}</span><span>${tr("Hash")}</span></div>${graphRows(data.commits) || empty(t("No matching commits"), t("Create your first commit in Working changes to start a new repository."))}${data.hasMore ? btn(t("Load more commits"),'more','class="load-more"') : ''}<div class="graph-foot">${tr('Commits: {0} · Topological order', data.commits.length)}${data.hasMore ? '' : t(" · End of results")}</div></div></section><aside id="detail-pane" class="detail-pane" aria-label="${tr("Commit details")}">${detailPane()}</aside></div>`;
   }
   function workingFiles(files, staged, label) {
     return `<section class="working-group"><h3>${label} <span class="count">${files.length}</span></h3>${files.map(f => `<div class="working-file"><button class="file-diff" data-action="workingDiff" data-file="${e(f.path)}" data-staged="${staged}"><span class="file-status status-${f.conflict ? 'U' : e(staged ? f.index : f.working)}">${f.conflict ? '!' : e(staged ? f.index : f.working)}</span><span>${e(f.path)}</span></button>${btn(staged ? t("Unstage") : t("Stage"),staged ? 'unstage' : 'stage',`data-file="${e(f.path)}"`)}</div>`).join('') || `<p class="muted">${tr("No files")}</p>`}</section>`;
@@ -133,6 +173,8 @@
     const s = data.status;
     const navigation = tabs.map(([id,glyph,label],i)=>`${i===0 ? `<span class="nav-heading">${tr("Repository")}</span>` : i===6 ? `<span class="nav-heading">${tr("Explore and organize")}</span>` : ''}<button class="tab ${state.tab===id?'active':''}" data-action="tab" data-tab="${id}" aria-current="${state.tab===id?'page':'false'}">${icon(glyph)}<span>${label}</span>${id==='changes' && s.files.length ? `<span class="count">${s.files.length}</span>` : ''}</button>`).join('');
     app.innerHTML = `<header class="header"><div class="brand"><span class="brand-mark">${icon('prism')}</span><div><strong>Gitrism</strong><small>See changes. Know history.</small></div></div><div class="repository-context">${btn(`<span class="repo-name">${e(data.name)}</span>` + icon('chevron'),'chooseRepository',`class="repo-picker" title="${e(data.root)}" aria-label="${tr('Choose repository: {0}', data.name)}"`)}<span class="branch-label" title="${e(s.branch)}">${icon('branch')}<span>${e(s.branch)}</span></span><span class="remote-label">${s.upstream ? '↑ ' + s.ahead + ' · ↓ ' + s.behind : t("No upstream")}</span></div><div class="header-actions"><div class="remote-actions">${btn(t("Fetch"),'fetch')}${btn(t("Pull"),'pull')}${btn(t("Push"),'push')}${btn(t("Sync"),'sync','class="sync-button"')}</div>${btn(t("Refresh"),'refresh',`title="${tr("Refresh")}" aria-label="${tr("Refresh")}"`)}${btn(t("Open in editor"),'openGraph',`title="${tr("Open in editor")}" aria-label="${tr("Open in editor")}"`)}</div></header><div class="workspace-shell"><nav class="tabs" aria-label="${tr("Repository navigation")}">${navigation}<div class="nav-signature"><span class="signature-spectrum"></span><small>See changes.<br>Know history.</small></div></nav><div class="workspace-main">${data.operation ? `<div class="operation-bar"><span>${tr('Operation in progress: {0} · Conflicted files: {1}', data.operation, s.conflicted)}</span>${btn(t("Continue"),'finishOperation','data-operation-action="continue"')}${btn(t("Abort"),'finishOperation','data-operation-action="abort"')}</div>` : ''}<div class="content content-${e(state.tab)}">${({graph:graphView,changes:changesView,branches:branchesView,tags:tagsView,stashes:stashesView,worktrees:worktreesView,compare:compareView,timeline:timelineView,rebase:rebaseView}[state.tab] || graphView)()}</div></div></div><footer class="footer"><span class="workspace-status ${s.conflicted ? 'has-conflicts' : ''}"><span class="status-dot"></span>${s.files.length ? tr('Changes: {0} · Staged: {1}', s.files.length, s.staged) : t("Working tree clean")}${s.conflicted ? tr(' · Conflicts: {0}', s.conflicted) : ''}</span><span id="loading-label">${busy ? t("Running Git operation…") : loading ? t("Loading…") : t("Local repository")}</span></footer>`;
+    activityObserver.disconnect();
+    const activityNode=document.getElementById('personal-activity'); if(activityNode) activityObserver.observe(activityNode);
     app.setAttribute('aria-busy',String(loading || busy));
     if (busy) app.querySelectorAll('button[data-action]').forEach(b=>{ if (!['tab','copy','select','selectTimeline','diff','workingDiff'].includes(b.dataset.action)) b.disabled=true; });
     const scrollNode = document.getElementById('graph-scroll'); if (scrollNode) scrollNode.scrollTop=scroll;
@@ -146,7 +188,7 @@
     state.compareFrom=from; state.compareTo=to; state.tab='compare'; comparisonLoading=true; comparison=undefined; persist(); render();
     compareRequest=++serial; send('compare',{from,to:to || 'HEAD',request:compareRequest});
   }
-  function search(values) { state.tab='graph'; detail=undefined; state.selected=''; detailLoading=false; detailRequest=++serial; persist(); send('search',values); render(); }
+  function search(values) { state.searchDraft=values; state.advancedOpen=false; state.tab='graph'; detail=undefined; state.selected=''; detailLoading=false; detailRequest=++serial; persist(); send('search',values); render(); }
   function loadTimeline(file) {
     state.tab='timeline'; state.timelineFile=file; timelineLoading=true; timelineRequest=++serial; persist(); render();
     send('timelineHistory',{file,request:timelineRequest});
@@ -155,14 +197,19 @@
     if (event.target.id==='draft') state.draft=event.target.value;
     if (event.target.id==='compare-from') state.compareFrom=event.target.value;
     if (event.target.id==='compare-to') state.compareTo=event.target.value;
+    if (['search','search-by','ref','file-filter','since','until','authors','merges','first-parent','only-mine'].includes(event.target.id)) { try { state.searchDraft=readSearch(); } catch {} }
     persist();
   });
-  app.addEventListener('click',event=>{
+  app.addEventListener('click' ,event=>{
+    const day=event.target.closest('[data-day]'); if(day) {searchDay(day.dataset.day);return;}
+    if (event.target.closest('.advanced-search summary')) { state.advancedOpen=!event.target.closest('.advanced-search').open;persist(); }
     const button=event.target.closest('button[data-action]'); if (!button || button.disabled) return;
     const a=button.dataset.action, d=button.dataset, value=id=>document.getElementById(id)?.value || '';
     if (a==='tab') { state.tab=d.tab; persist(); render(); if(d.tab==='timeline' && state.timelineFile && !timelineCommits.length && !timelineLoading)loadTimeline(state.timelineFile); return; }
     if (a==='select' || a==='selectTimeline') { select(d.hash,a==='selectTimeline'); return; }
-    if (a==='search') { search({query:value('search'),searchBy:value('search-by'),ref:value('ref'),file:value('file-filter')}); return; }
+    if (a==='search') { try { search(readSearch()); } catch { notice(t("Invalid search date"),true); } return; }
+    if (a==='clearSelection') { state.selected='';detail=undefined;detailLoading=false;detailRequest=++serial;persist();render();return; }
+    if (a==='lastWeek') { const now=new Date(),start=new Date(now);start.setDate(start.getDate()-6);document.getElementById('since').value=GitrismActivity.dayKey(start);document.getElementById('until').value=GitrismActivity.dayKey(now);state.searchDraft=readSearch();persist();return; }
     if (a==='clearSearch') { search({query:'',ref:'',file:''}); return; }
     if (a==='focusRef') { search({ref:d.ref}); return; }
     if (a==='compareStart' && detail) { state.compareFrom=detail.hash; state.tab='compare'; comparison=undefined; persist(); render(); return; }
@@ -183,9 +230,15 @@
     if (a==='stashAction') { send(a,{action:d.stashAction,hash:d.hash}); return; }
     send(a,{file:d.file,ref:d.ref,branch:d.branch,tag:d.tag,path:d.path});
   });
-  app.addEventListener('change',event=>{ if (event.target.id==='ref') document.querySelector('[data-action="search"]')?.click();if(event.target.dataset.rebaseIndex!==undefined && rebasePlan){rebasePlan.commits[Number(event.target.dataset.rebaseIndex)].action=event.target.value;render();} });
+  app.addEventListener('change',event=>{
+    if(event.target.id==='activity-period') {state.activityWeeks=Number(event.target.value);persist();updateActivity();return;}
+    if(event.target.id==='only-mine') { const own=event.target.checked;document.getElementById('authors').disabled=own;document.querySelector('#search-by option[value=author]').disabled=own;if(own){document.getElementById('authors').value='';if(document.getElementById('search-by').value==='author')document.getElementById('search-by').value='message';} }
+    if(['search-by','ref','merges','first-parent','only-mine'].includes(event.target.id)) {state.searchDraft=readSearch();persist();}
+ if (event.target.id==='ref') document.querySelector('[data-action="search"]')?.click();if(event.target.dataset.rebaseIndex!==undefined && rebasePlan){rebasePlan.commits[Number(event.target.dataset.rebaseIndex)].action=event.target.value;render();} });
   app.addEventListener('keydown',event=>{
-    if (event.key==='Enter' && ['search','file-filter'].includes(event.target.id)) document.querySelector('[data-action="search"]')?.click();
+    if (event.target.matches('[data-day]') && ['Enter',' '].includes(event.key)) {event.preventDefault();searchDay(event.target.dataset.day);return;}
+    if (event.key==='Escape') {const advanced=app.querySelector('.advanced-search');if(advanced){advanced.open=false;state.advancedOpen=false;persist();}}
+    if (event.key==='Enter' && ['search','file-filter','authors','since','until'].includes(event.target.id)) document.querySelector('[data-action="search"]')?.click();
     if (event.key==='Enter' && event.target.id==='timeline-file') document.querySelector('[data-action="timelineSearch"]')?.click();
     if (event.key==='Enter' && (event.ctrlKey || event.metaKey) && event.target.id==='draft') { event.preventDefault(); document.querySelector('[data-action="commit"]')?.click(); }
     if (['ArrowDown','ArrowUp'].includes(event.key) && event.target.classList.contains('commit-row')) {
@@ -195,11 +248,12 @@
   window.addEventListener('message',event=>{
     const m=event.data;
     if (m.type==='data') {
-      if (m.data && state.root && state.root!==m.data.root) { state.selected=''; state.draft=''; detail=undefined; comparison=undefined; }
+      if (m.data && state.root && state.root!==m.data.root) { state.selected=''; state.draft=''; state.searchDraft=undefined;activity=undefined;activityError=undefined;detail=undefined; comparison=undefined; }
       data=m.data; state.root=data?.root; loading=false; persist(); render();
       if (state.selected && !detail && !detailLoading && data) select(state.selected,state.tab==='timeline');
     }
-    if (m.type==='reset') { data=undefined; detail=undefined; comparison=undefined; timelineCommits=[];rebasePlan=undefined;rebaseLoading=false; state={tab:'graph',draft:'',selected:'',compareFrom:'HEAD',compareTo:''}; detailRequest=++serial; compareRequest=++serial; timelineRequest=++serial;rebaseRequest=++serial; detailLoading=false; comparisonLoading=false; timelineLoading=false; persist(); render(); }
+    if (m.type==='reset') { activity=undefined;activityError=undefined;data=undefined; detail=undefined; comparison=undefined; timelineCommits=[];rebasePlan=undefined;rebaseLoading=false; state={tab:'graph',draft:'',selected:'',compareFrom:'HEAD',compareTo:''}; detailRequest=++serial; compareRequest=++serial; timelineRequest=++serial;rebaseRequest=++serial; detailLoading=false; comparisonLoading=false; timelineLoading=false; persist(); render(); }
+    if (m.type==='activity' && m.root===data?.root) { activity=m.activity;activityError=m.error;updateActivity();const mine=document.getElementById('only-mine');if(mine)mine.disabled=!activity?.email; }
     if (m.type==='loading') { loading=m.value; app.setAttribute('aria-busy',String(loading || busy)); const label=document.getElementById('loading-label'); if(label)label.textContent=loading ? t("Loading…") : t("Local repository"); }
     if (m.type==='busy') { busy=m.value; render(); }
     if (m.type==='details' && m.request===detailRequest) { detail=m.detail; detailLoading=false; render(); }

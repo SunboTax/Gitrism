@@ -386,3 +386,46 @@ body.vscode-light, body.vscode-high-contrast-light { --prism-purple: #7650b5; }
 @media (prefers-reduced-motion: no-preference) {
   button { transition: background-color 120ms, border-color 120ms; }
 }
+
+/* Personal activity: original prism colors and compact calendar geometry. */
+.personal-activity { min-width: 0; }
+.personal-activity h2 { font-size: 21px; margin-top: 8px; }
+.activity-identity { font: 11px var(--vscode-editor-font-family, monospace); color: var(--muted); overflow: hidden; text-overflow: ellipsis; margin: 10px 0 24px; }
+.activity-stats { display: flex; gap: 30px; margin: 18px 0 24px; }
+.activity-stats div { display: flex; flex-direction: column; }
+.activity-stats strong { font-size: 28px; font-weight: 550; letter-spacing: -1px; line-height: 1.2; }
+.activity-stats span { color: var(--muted); font-size: 11px; margin-top: 6px; }
+.activity-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 10px; color: var(--muted); }
+.activity-controls select { max-width: 100px; padding: 4px 6px; font-size: 10px; }
+.activity-grid { max-width: 100%; overflow-x: auto; margin-top: 14px; }
+.activity-svg { display: block; }
+.activity-label { fill: var(--muted); font: 8px var(--vscode-font-family, system-ui); }
+.activity-day { cursor: pointer; stroke: var(--border); stroke-width: .5; }
+.activity-day:hover, .activity-day:focus { stroke: var(--fg); stroke-width: 1.5; outline: none; }
+.activity-level-0 { fill: var(--tint); background: var(--tint); }
+.activity-level-1 { fill: color-mix(in srgb, var(--accent) 28%, var(--bg)); background: color-mix(in srgb, var(--accent) 28%, var(--bg)); }
+.activity-level-2 { fill: color-mix(in srgb, var(--accent) 52%, var(--bg)); background: color-mix(in srgb, var(--accent) 52%, var(--bg)); }
+.activity-level-3 { fill: var(--accent); background: var(--accent); }
+.activity-level-4 { fill: var(--cyan); background: var(--cyan); }
+.activity-legend { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 9px; color: var(--muted); }
+.activity-swatch { width: 9px; height: 9px; border: 1px solid var(--border); border-radius: 2px; }
+.activity-note { font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 24px; padding-top: 14px; line-height: 1.7; }
+.activity-invitation { display: flex; align-items: flex-start; gap: 7px; font-size: 11px; color: var(--accent); margin-top: 18px; }
+.back-activity { font-size: 10px; color: var(--muted); padding: 0 0 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border); border-radius: 0; }
+/* Search remains reachable in short panels without consuming graph height. */
+.filters { position: relative; }
+.advanced-search { margin: 0; padding: 0; border: 0; flex: none; }
+.advanced-search>summary { display: flex; align-items: center; gap: 5px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px; color: var(--fg); font-size: 11px; list-style: none; }
+.advanced-search>summary::-webkit-details-marker { display: none; }
+.advanced-search[open]>summary { color: var(--accent); background: var(--tint); }
+.advanced-panel { position: absolute; right: 18px; top: calc(100% - 8px); z-index: 4; width: min(360px, calc(100% - 24px)); max-height: 58vh; overflow-y: auto; padding: 18px; background: var(--surface); border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: 8px; box-shadow: 0 10px 30px #0004; }
+.advanced-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+.advanced-panel label { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; color: var(--muted); font-size: 11px; min-width: 0; }
+.advanced-panel input, .advanced-panel select { width: 100%; max-width: none; font-size: 11px; }
+.advanced-dates { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+.advanced-panel .check-option { flex-direction: row; align-items: center; gap: 8px; }
+.check-option input { width: auto; accent-color: var(--accent); }
+.advanced-panel p { font-size: 10px; line-height: 1.6; }
+.advanced-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.advanced-actions button { font-size: 11px; }
+@media (max-height: 480px) { .advanced-panel { position: fixed; top: auto; bottom: 28px; right: 18px; width: min(360px, calc(100vw - 24px)); max-height: calc(100vh - 140px); padding: 12px; } .activity-stats { margin-block: 14px; } .activity-note { margin-top: 16px; } .advanced-search>summary { padding-block: 4px; height: 30px; } }

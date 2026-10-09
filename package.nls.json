@@ -17,5 +17,8 @@
   "setting.inlineBlame.mode.currentLine": "Annotate only the current line.",
   "setting.inlineBlame.mode.allLines": "Annotate all lines in the file.",
   "setting.inlineBlame.maxLines": "Maximum number of lines to decorate when inline blame is enabled.",
-  "setting.sshProxy": "SOCKS5 proxy for SSH GitHub connections, such as 127.0.0.1:7890. Leave empty to use the system SSH configuration."
+  "setting.sshProxy": "SOCKS5 proxy for SSH GitHub connections, such as 127.0.0.1:7890. Leave empty to use the system SSH configuration.",
+  "setting.codeLens.enabled": "Show code attribution and history links above functions and classes. Uses current retained lines; unsaved documents are skipped.",
+  "setting.codeLens.maxLines": "Maximum file length for CodeLens attribution.",
+  "setting.codeLens.maxSymbols": "Maximum number of function and class locations annotated in each file."
 }

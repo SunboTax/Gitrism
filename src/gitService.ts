@@ -11,9 +11,10 @@ export interface RepositoryStatus { branch: string; upstream?: string; ahead: nu
 export interface WorkingFile { path: string; oldPath?: string; index: string; working: string; conflict: boolean }
 export interface CommitSummary { hash: string; author: string; date: string; subject: string }
 export interface GraphCommit extends CommitSummary { parents: string[]; refs: string }
-export interface GraphOptions { query?: string; searchBy?: "message" | "author" | "hash"; ref?: string; file?: string; skip?: number }
+export interface GraphOptions { query?: string; searchBy?: "message" | "author" | "hash"; ref?: string; file?: string; skip?: number; authors?: string[]; authorEmail?: string; since?: string; until?: string; merges?: "all" | "exclude" | "only"; firstParent?: boolean }
 export interface BranchSummary { name: string; current: boolean; remote?: string; isRemote?: boolean; hash?: string }
-export interface BlameLine { hash: string; author: string; date: string; summary: string }
+export interface BlameLine { hash: string; author: string; email?: string; date: string; summary: string }
+export interface PersonalActivity { email?: string; timestamps: number[] }
 export interface ChangedFile { path: string; oldPath?: string; status: string; from?: string; to?: string }
 export interface CommitDetail { hash: string; parents: string[]; author: string; email: string; date: string; message: string; files: ChangedFile[]; stats: string }
 export interface TagSummary { name: string; hash: string; date: string; subject: string }
@@ -24,7 +25,17 @@ export type RebaseAction = "pick" | "squash" | "fixup" | "drop";
 export interface RebaseStep { hash: string; action: RebaseAction }
 export interface RebasePlan { base: string; head: string; branch: string; commits: GraphCommit[] }
 export class GitError extends Error {
-  public constructor(message: string, public readonly detail?: string) { super(message); this.name = "GitError"; }
+  public constructor(message: string, public readonly detail?: string, public readonly exitCode?: string | number) { super(message); this.name = "GitError"; }
+}
+export function validateGraphOptions(options: GraphOptions): void {
+  if (options.searchBy !== undefined && !["message", "author", "hash"].includes(options.searchBy)) throw new GitError(t("Unknown search type"));
+  if (options.merges !== undefined && !["all", "exclude", "only"].includes(options.merges)) throw new GitError(t("Invalid merge filter"));
+  if (options.authors !== undefined && (!Array.isArray(options.authors) || options.authors.length > 20 || options.authors.some(author => typeof author !== "string" || author.length > 200 || /[\0\r\n]/.test(author)))) throw new GitError(t("Invalid author filter"));
+  if (options.authorEmail !== undefined && (typeof options.authorEmail !== "string" || !options.authorEmail || /[\s<>\0]/.test(options.authorEmail) || options.authorEmail.length > 254)) throw new GitError(t("Invalid author email"));
+  if (options.authorEmail && ((options.authors?.length || 0) > 0 || (options.query?.trim() && options.searchBy === "author"))) throw new GitError(t("Personal email cannot be combined with other author filters"));
+  if (options.firstParent !== undefined && typeof options.firstParent !== "boolean") throw new GitError(t("Invalid request parameter"));
+  for (const date of [options.since, options.until]) if (date !== undefined && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().replace(".000Z", "Z") !== date)) throw new GitError(t("Invalid search date"));
+  if (options.since && options.until && options.since > options.until) throw new GitError(t("The start date must not be after the end date"));
 }
 function buildSshCommand(proxy: string): string {
   const value = proxy.trim().replace(/^socks5h?:\/\//, "");
@@ -83,7 +94,7 @@ export class GitService {
       if (error instanceof GitError) throw error;
       const e = error as { code?: string | number; killed?: boolean; stderr?: string; message?: string };
       throw new GitError(t("Git operation failed"), e.code === "ETIMEDOUT" || e.killed
-        ? t("Git operation exceeded 60 seconds. Check the remote URL, SSH keys, proxy, and network.") : e.stderr || e.message);
+        ? t("Git operation exceeded 60 seconds. Check the remote URL, SSH keys, proxy, and network.") : e.stderr || e.message, e.code);
     }
   }
   public filePath(file: string): string {
@@ -159,17 +170,46 @@ export class GitService {
   public async log(limit = 30, file?: string): Promise<CommitSummary[]> { return this.graph(limit, { ref: "HEAD", file }); }
   public async graph(limit = 100, options: GraphOptions | string = {}): Promise<GraphCommit[]> {
     const opts = typeof options === "string" ? { query: options } : options;
-    if (!(await this.hasHead()) && !(await this.branches(true)).length) return [];
+    validateGraphOptions(opts);
+    const hasHead = await this.hasHead();
+    if (!hasHead && !(await this.branches(true)).length) return [];
     const args = ["log", "--topo-order", "-n" + Math.max(1, Math.min(limit, 5000)), "--skip=" + Math.max(0, opts.skip ?? 0), "--date=iso-strict", "--pretty=format:" + logFormat];
+    if (opts.since) args.push("--since=" + opts.since);
+    if (opts.until) args.push("--until=" + opts.until);
+    if (opts.merges === "exclude") args.push("--no-merges");
+    if (opts.merges === "only") args.push("--merges");
+    if (opts.firstParent) args.push("--first-parent");
+    if (opts.authorEmail) args.push("--regexp-ignore-case", "--fixed-strings", "--author=<" + opts.authorEmail + ">");
+    else for (const author of opts.authors || []) if (author.trim()) args.push("--regexp-ignore-case", "--fixed-strings", "--author=" + author.trim());
+    const allRefs = ["--exclude=refs/stash", "--exclude=refs/notes/*", "--all", ...(hasHead ? ["HEAD"] : [])];
     if (opts.query?.trim()) {
       if (opts.searchBy === "hash") args.push(await this.resolveCommit(opts.query.trim()), "--no-walk");
       else {
         args.push("--regexp-ignore-case", "--fixed-strings", (opts.searchBy === "author" ? "--author=" : "--grep=") + opts.query.trim());
-        args.push(opts.ref ? await this.resolveCommit(opts.ref) : "--all");
+        args.push(...(opts.ref ? [await this.resolveCommit(opts.ref)] : allRefs));
       }
-    } else args.push(opts.ref ? await this.resolveCommit(opts.ref) : "--all");
+    } else args.push(...(opts.ref ? [await this.resolveCommit(opts.ref)] : allRefs));
     if (opts.file) { this.filePath(opts.file); args.push("--follow", "--", opts.file); }
     return parseCommits(await this.run(args, Boolean(opts.file)));
+  }
+  public async personalActivity(now = new Date()): Promise<PersonalActivity> {
+    let email: string;
+    try { email = (await this.run(["config", "--get", "user.email"])).trim(); }
+    catch (error) {
+      // Missing identity is a normal empty state; other failures remain visible.
+      if (error instanceof GitError && error.exitCode === 1) return { timestamps: [] };
+      throw error;
+    }
+    if (!email || email.length > 254 || /[\s<>\0]/.test(email)) return { timestamps: [] };
+    const hasHead = await this.hasHead();
+    if (!hasHead && !(await this.branches(true)).length) return { email, timestamps: [] };
+    const cutoff = Math.floor(now.getTime() / 1000) - 374 * 86400;
+    const output = await this.run(["log", "--no-merges", "--since=@" + cutoff, "--regexp-ignore-case", "--fixed-strings", "--author=<" + email + ">", "--format=%ct%x00%ae", "--exclude=refs/stash", "--exclude=refs/notes/*", "--all", ...(hasHead ? ["HEAD"] : []), "--"]);
+    const timestamps = output.split(/\r?\n/).filter(Boolean).flatMap(line => {
+      const [timestamp, authorEmail] = line.split("\0"), value = Number(timestamp);
+      return authorEmail?.toLowerCase() === email.toLowerCase() && Number.isFinite(value) && value >= cutoff && value <= now.getTime() / 1000 ? [value] : [];
+    });
+    return { email, timestamps };
   }
   public async commitDetails(ref: string): Promise<string> { return this.run(["show", "--stat", "--decorate=short", "--format=fuller", await this.resolveCommit(ref), "--"]); }
   public async detail(ref: string): Promise<CommitDetail> {
@@ -326,6 +366,7 @@ export class GitService {
       const header = line.match(/^([0-9a-f^]{8,64})\s+\d+\s+\d+(?:\s+\d+)?$/);
       if (header) { current = { hash: header[1], author: "Unknown", date: "", summary: "" }; result.push(current); }
       else if (current && line.startsWith("author ")) current.author = line.slice(7);
+      else if (current && line.startsWith("author-mail ")) current.email = line.slice(12).replace(/^<|>$/g, "");
       else if (current && line.startsWith("author-time ")) current.date = new Date(Number(line.slice(12)) * 1000).toISOString();
       else if (current && line.startsWith("summary ")) current.summary = line.slice(8);
     }

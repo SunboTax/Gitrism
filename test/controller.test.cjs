@@ -11,7 +11,7 @@ Module._load=original;
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve};};
 const flush=()=>new Promise(r=>setImmediate(r));
 function fakeGit(root='/repo') {
-  return {cwd:root,status:async()=>({branch:'main',files:[]}),branches:async()=>[],graph:async()=>[],tags:async()=>[],stashes:async()=>[],worktrees:async()=>[],operationState:async()=>undefined};
+  return {cwd:root,status:async()=>({branch:'main',files:[]}),branches:async()=>[],graph:async()=>[],tags:async()=>[],stashes:async()=>[],worktrees:async()=>[],personalActivity:async()=>({email:"self@example.invalid",timestamps:[]}),operationState:async()=>undefined};
 }
 function attach(git,changed=async()=>{}){
   const sent=[];let receive;
@@ -70,4 +70,27 @@ test('Webviews receive the host locale and native confirmations use the same tra
       c.controller.dispose();
     }
   } finally {setLanguage('en');}
+});
+
+test('advanced request validation preserves previous filters and all fields survive pagination',async()=>{
+  const git=fakeGit(),options=[];git.graph=async(limit,opts)=>{options.push({...opts});return []};
+  const c=attach(git),expected={query:'needle',searchBy:'message',authors:['A','B'],since:'2026-10-01T00:00:00Z',until:'2026-10-03T23:59:59Z',merges:'exclude',firstParent:true};
+  c.receive({type:'search',...expected});await flush();
+  c.receive({type:'more'});await flush();
+  assert.deepEqual(options.at(-1).authors,['A','B']);assert.equal(options.at(-1).since,expected.since);assert.equal(options.at(-1).firstParent,true);
+  for(const values of [{authors:'not an array'},{firstParent:'true'},{merges:'bad'},{since:'2026-02-30T00:00:00Z'},{since:'2026-10-04T00:00:00Z',until:'2026-10-01T00:00:00Z'}]){c.receive({type:'search',...values});await flush();assert.equal(c.sent.at(-1).type,'error');}
+  await c.controller.refresh();assert.deepEqual(options.at(-1).authors,['A','B']);
+  c.controller.dispose();
+});
+
+test('activity is cached, failure stays isolated, and old repository activity cannot replace the current one',async()=>{
+  const git=fakeGit(),slow=deferred();let scans=0;git.personalActivity=()=>{scans++;return slow.promise;};
+  const c=attach(git);await c.controller.refresh();await c.controller.refresh();assert.equal(scans,1);
+  c.controller.setGit(fakeGit('/next'));await flush();slow.resolve({email:'old',timestamps:[1]});await flush();
+  assert.equal(c.sent.filter(m=>m.type==='activity').length,1);assert.equal(c.sent.find(m=>m.type==='activity').root,'/next');
+  const broken=fakeGit('/broken');broken.personalActivity=async()=>{throw new Error('activity unavailable');};
+  c.controller.setGit(broken);await flush();
+  assert.ok(c.sent.some(m=>m.type==='data'&&m.data?.root==='/broken'));
+  assert.ok(c.sent.some(m=>m.type==='activity'&&m.root==='/broken'&&m.error));assert.equal(c.sent.some(m=>m.type==='error'),false);
+  c.controller.dispose();
 });

@@ -7,6 +7,7 @@ import { CommitGraphPanel } from "./commitGraphPanel";
 import { GitrismPanelView } from "./gitrismPanelView";
 import { RevisionProvider } from "./revisionProvider";
 import { executeGitMutation } from "./workspaceController";
+import { GitrismCodeLensProvider, CodeAuthor } from "./codeLensProvider";
 import { migrateLegacySettings } from "./settingsMigration";
 
 let git: GitService | undefined;
@@ -23,6 +24,7 @@ let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 let blameTimer: ReturnType<typeof setTimeout> | undefined;
 let blameRequest = 0;
 let repositoryRequest = 0;
+let codeLens: GitrismCodeLensProvider | undefined;
 let blameCache: { key: string; lines: BlameLine[] } | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -45,6 +47,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
   context.subscriptions.push(blameDecoration);
 
+  codeLens = new GitrismCodeLensProvider(() => repositories);
+  context.subscriptions.push(codeLens, vscode.languages.registerCodeLensProvider({ scheme: "file" }, codeLens));
   const register = (command: string, callback: (...args: any[]) => unknown) => {
     context.subscriptions.push(vscode.commands.registerCommand(command, callback));
   };
@@ -59,8 +63,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const tree = await ensureWorkspace(context);
     if (tree) await showBranches(tree);
   });
-  register("gitrism.showHistory", async () => {
-    if (await ensureWorkspace(context)) await showHistory();
+  register("gitrism.showHistory", async (uri?: vscode.Uri) => {
+    if (await ensureWorkspace(context)) await showHistory(uri);
+  });
+  register("gitrism.showCodeAuthors", async (authors: CodeAuthor[] = [], root?: string) => {
+    const choice = await vscode.window.showQuickPick(authors.map(author => ({
+      label: author.name, description: author.email,
+      detail: t("{0} retained lines · {1}", author.lines, author.commit.summary), hash: author.commit.hash
+    })), { placeHolder: t("Authors of current retained lines; select an author to view a related commit") });
+    if (choice) await vscode.commands.executeCommand("gitrism.showCommit", choice.hash, root);
   });
   register("gitrism.showLineBlame", async () => {
     if (await ensureWorkspace(context)) await showLineBlame();
@@ -110,7 +121,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.onDidChangeActiveTextEditor(() => {
       scheduleBlame();
     }),
+    vscode.workspace.onDidSaveTextDocument(() => codeLens?.invalidate()),
     vscode.workspace.onDidChangeTextDocument((event) => {
+      codeLens?.invalidate();
       if (inlineBlameEnabled && vscode.window.activeTextEditor?.document === event.document) {
         scheduleBlame();
       }
@@ -119,6 +132,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       scheduleBlame();
     }),
     vscode.workspace.onDidChangeConfiguration(event => {
+      if (event.affectsConfiguration("gitrism.codeLens")) codeLens?.invalidate();
       if (event.affectsConfiguration("gitrism.inlineBlame")) {
         inlineBlameEnabled = vscode.workspace.getConfiguration("gitrism.inlineBlame").get("enabled", false);
         vscode.window.visibleTextEditors.forEach(editor => editor.setDecorations(blameDecoration!, []));
@@ -148,6 +162,7 @@ async function discoverRepositories(): Promise<void> {
   const results = await Promise.allSettled(candidates.map(async candidate => new GitService(candidate, proxy).repositoryRoot()));
   for (const result of results) if (result.status === "fulfilled") roots.add(result.value);
   repositories = [...roots].map(root => new GitService(root, proxy));
+  codeLens?.invalidate();
 }
 
 async function selectRepository(repo: GitService, context: vscode.ExtensionContext): Promise<GitrismTreeProvider> {
@@ -186,6 +201,7 @@ async function initializeWorkspace(context: vscode.ExtensionContext, force = fal
 
 async function refreshWorkspace(): Promise<void> {
   blameCache = undefined;
+  codeLens?.invalidate();
   await Promise.all([currentTree?.refresh(), panelView?.controller.refresh(), CommitGraphPanel.refresh()]);
   scheduleBlame();
 }
@@ -240,13 +256,16 @@ async function showBranches(tree: GitrismTreeProvider): Promise<void> {
   }
 }
 
-async function showHistory(): Promise<void> {
+async function showHistory(uri?: vscode.Uri): Promise<void> {
   if (!git) return;
   const editor = vscode.window.activeTextEditor;
-  if (!editor) return;
+  const target = uri || editor?.document.uri;
+  if (!target || target.scheme !== "file") return;
   try {
-    await selectEditorRepository(editor);
-    const relative = path.relative(git.cwd, editor.document.uri.fsPath);
+    const repository = repositories.filter(repo => target.fsPath.startsWith(repo.cwd + path.sep)).sort((a,b)=>b.cwd.length-a.cwd.length)[0];
+    if (!repository) return;
+    if (repository.cwd !== git.cwd) await selectRepository(repository, extensionContext);
+    const relative = path.relative(repository.cwd, target.fsPath);
     git.filePath(relative);
     await CommitGraphPanel.createOrShow(git, extensionContext.extensionUri, refreshWorkspace, undefined, relative);
   } catch (error) {

@@ -2,7 +2,7 @@ import { t, getLocale, getLocalization } from "./localization";
 import * as vscode from "vscode";
 import * as path from "node:path";
 import { randomBytes } from "node:crypto";
-import { GitError, GitService, GraphOptions, RebaseStep } from "./gitService";
+import { GitError, GitService, GraphOptions, RebaseStep, PersonalActivity, validateGraphOptions } from "./gitService";
 import { openDiff } from "./revisionProvider";
 
 const lockedRepositories = new Set<string>();
@@ -25,10 +25,11 @@ export class WorkspaceController implements vscode.Disposable {
   private limit = 100;
   private generation = 0;
   private refreshId = 0;
+  private activityCache?: { key: string; expires: number; promise: Promise<PersonalActivity> };
   public constructor(private readonly extensionUri: vscode.Uri, private git: GitService | undefined, private readonly changed: () => Promise<void>) {}
   public dispose(): void { this.listener?.dispose(); this.webview = undefined; this.generation++; }
   public setGit(git: GitService | undefined): void {
-    if (this.git?.cwd !== git?.cwd) { this.options = {}; this.limit = 100; this.post({ type: "reset" }); }
+    if (this.git?.cwd !== git?.cwd) { this.options = {}; this.limit = 100; this.activityCache = undefined; this.post({ type: "reset" }); }
     this.git = git; this.generation++; void this.refresh();
   }
   public attach(webview: vscode.Webview): void {
@@ -57,10 +58,26 @@ export class WorkspaceController implements vscode.Disposable {
       if (generation !== this.generation || request !== this.refreshId) return;
       this.post({ type: "data", data: { root: git.cwd, name: path.basename(git.cwd), status, branches, commits: commits.slice(0, this.limit), tags, stashes, ...worktreeResult, operation,
         hasMore: commits.length > this.limit && this.limit < 2000, options: this.options, limit: this.limit } });
+      const activityKey = JSON.stringify([git.cwd, status.branch, branches.map(b => [b.name,b.hash]), tags.map(tag => [tag.name,tag.hash]), commits[0]?.hash]);
+      void this.refreshActivity(git, generation, request, activityKey);
     } catch (error) {
       if (generation === this.generation && request === this.refreshId) this.post({ type: "error", message: formatError(error) });
     } finally {
       if (generation === this.generation && request === this.refreshId) this.post({ type: "loading", value: false });
+    }
+  }
+  private async refreshActivity(git: GitService, generation: number, request: number, key: string): Promise<void> {
+    let pending: Promise<PersonalActivity> | undefined;
+    try {
+      if (!this.activityCache || this.activityCache.key !== key || this.activityCache.expires < Date.now()) {
+        this.activityCache = { key, expires: Date.now() + 60_000, promise: git.personalActivity() };
+      }
+      pending = this.activityCache.promise;
+      const activity = await pending;
+      if (generation === this.generation && request === this.refreshId) this.post({ type: "activity", root: git.cwd, activity });
+    } catch (error) {
+      if (this.activityCache?.promise === pending) this.activityCache = undefined;
+      if (generation === this.generation && request === this.refreshId) this.post({ type: "activity", root: git.cwd, error: formatError(error) });
     }
   }
   private post(message: unknown): void { void this.webview?.postMessage(message); }
@@ -70,14 +87,19 @@ export class WorkspaceController implements vscode.Disposable {
   private async handle(message: Message): Promise<void> {
     const git = this.git, generation = this.generation;
     try {
-      if (message.type === "ready" || message.type === "refresh") { await this.refresh(); return; }
+      if (message.type === "ready" || message.type === "refresh") { if (message.type === "refresh") this.activityCache = undefined; await this.refresh(); return; }
       if (message.type === "chooseRepository") { await vscode.commands.executeCommand("gitrism.chooseRepository"); return; }
       if (message.type === "openGraph") { await vscode.commands.executeCommand("gitrism.openGraph"); return; }
       if (message.type === "activeHistory") { await vscode.commands.executeCommand("gitrism.showHistory"); return; }
       if (message.type === "search") {
         const searchBy = text(message, "searchBy", "message");
         if (!["message", "author", "hash"].includes(searchBy)) throw new GitError(t("Unknown search type"));
-        this.options = { query: text(message, "query"), searchBy: searchBy as GraphOptions["searchBy"], ref: text(message, "ref") || undefined, file: text(message, "file") || undefined };
+        const options: GraphOptions = { query: text(message, "query"), searchBy: searchBy as GraphOptions["searchBy"], ref: text(message, "ref") || undefined, file: text(message, "file") || undefined,
+          authors: message.authors as string[] | undefined, authorEmail: text(message, "authorEmail") || undefined,
+          since: text(message, "since") || undefined, until: text(message, "until") || undefined,
+          merges: text(message, "merges", "all") as GraphOptions["merges"], firstParent: message.firstParent as boolean | undefined };
+        validateGraphOptions(options);
+        this.options = options;
         this.limit = 100; await this.refresh(); return;
       }
       if (message.type === "more") { this.limit = Math.min(2000, this.limit + 100); await this.refresh(); return; }
@@ -211,7 +233,7 @@ export class WorkspaceController implements vscode.Disposable {
     const resource = (name: string) => webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "resources", name));
     // Escape script terminators even if a future translation includes HTML-like text.
     const localization = JSON.stringify(getLocalization()).replace(/[<>&\u2028\u2029]/g, value => "\\u" + value.charCodeAt(0).toString(16).padStart(4, "0"));
-    return `<!DOCTYPE html><html lang="${getLocale()}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';"><link rel="stylesheet" href="${resource("workspace.css")}"><link rel="stylesheet" href="${resource("timeline.css")}"></head><body><main id="app" aria-busy="true"><div class="empty">${t("Loading local repository…")}</div></main><div id="toast" role="status" hidden></div><script id="gitrism-localization" type="application/json" nonce="${nonce}">${localization}</script><script nonce="${nonce}" src="${resource("i18n.js")}"></script><script nonce="${nonce}" src="${resource("graphLayout.js")}"></script><script nonce="${nonce}" src="${resource("workspace.js")}"></script></body></html>`;
+    return `<!DOCTYPE html><html lang="${getLocale()}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';"><link rel="stylesheet" href="${resource("workspace.css")}"><link rel="stylesheet" href="${resource("timeline.css")}"></head><body><main id="app" aria-busy="true"><div class="empty">${t("Loading local repository…")}</div></main><div id="toast" role="status" hidden></div><script id="gitrism-localization" type="application/json" nonce="${nonce}">${localization}</script><script nonce="${nonce}" src="${resource("i18n.js")}"></script><script nonce="${nonce}" src="${resource("graphLayout.js")}"></script><script nonce="${nonce}" src="${resource("activity.js")}"></script><script nonce="${nonce}" src="${resource("workspace.js")}"></script></body></html>`;
   }
 }
 function formatError(error: unknown): string { return error instanceof GitError ? error.detail || error.message : String(error); }

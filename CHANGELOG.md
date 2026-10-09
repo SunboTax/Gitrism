@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+- Add independently implemented editor CodeLens for function and class attribution, retained-line commit links, email-based author breakdowns, and URI-aware file history.
+- Use language-provider symbols, file-level fallback, bounded caches, and guards for dirty documents, cancellation, and stale reads.
+- Add advanced commit search with date ranges, multiple literal authors, merge modes, first-parent traversal, and personal email filtering.
+- Add an adaptive personal activity calendar to the graph's unselected detail pane, with 13/26/52-week periods and day-to-search navigation.
+- Count only the repository's configured email, exclude collaborators and synthetic stash/notes commits, deduplicate references, and include detached HEAD commits.
+- Keep calendar aggregation and selected-day boundaries in the client's timezone, including Remote SSH and daylight saving transitions; cache activity reads and isolate failures.
+- Localize the new features in English, Simplified Chinese, and Traditional Chinese; verify Git 2.25.1 compatibility and browser layouts.
+
 ## 0.3.0
 
 - Follow the VS Code display language, with English, Simplified Chinese, and Traditional Chinese; use English for unsupported languages.

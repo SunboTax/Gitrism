@@ -12,12 +12,16 @@ Commit history and details in a dark theme:
 
 ![Gitrism commit graph and details](docs/images/workspace-dark.png)
 
-This preview uses sample repository data. Colors follow your VS Code theme.
+With no commit selected, the right pane shows your own activity:
+
+![Gitrism personal activity calendar](docs/images/personal-activity.png)
+
+These previews use sample repository data. Colors follow your VS Code theme.
 
 ## Features
 
 - **Commit graph:** actual parent relationships, branch and merge lanes, reference labels, and incremental loading of up to 2,000 commits.
-- **Search and filters:** search messages, authors, hashes, or references; focus on a branch, tag, or file history.
+- **Advanced search:** combine message, author, reference, and file filters with a date range, multiple authors, merge modes, first-parent traversal, and personal commits.
 - **Commit details:** full messages, author information, parent navigation, change statistics, and file status including renames.
 - **Native diffs:** open changed files in VS Code's diff editor, including added and deleted files, the staging area, and working changes.
 - **Working changes:** separate staged, unstaged, untracked, and conflicted files; stage or unstage individual files; preserve commit drafts across refreshes.
@@ -28,6 +32,8 @@ This preview uses sample repository data. Colors follow your VS Code theme.
 - **History operations:** cherry-pick, revert, merge, and rebase, with continue and abort controls when an operation is in progress.
 - **Interactive rebase:** preview a linear history plan, reorder commits, squash, fixup, or drop them; create a backup branch before applying the plan.
 - **File timeline:** follow renames through up to 500 commits, inspect monthly commit counts, and open commit details and diffs.
+- **Editor CodeLens:** function and class attribution, clickable retained-line commits, author breakdowns grouped by email, and file history.
+- **Personal activity:** an adaptive 13/26/52-week calendar beside the graph, counting only your non-merge commits; select a day to explore them.
 - **Blame and line history:** current-line or whole-file annotations, hover details, commit navigation, and history for selected lines.
 - **Multiple repositories:** select workspace repositories and nested repositories discovered by VS Code's built-in Git extension.
 - **Remote operations:** fetch, pull with `--ff-only`, push, and sync using existing Git credentials, with an optional SSH SOCKS5 proxy.
@@ -42,12 +48,12 @@ Stage files, inspect diffs, and compose commits from the same workspace:
 
 ## Install
 
-Download [`gitrism-0.3.0.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.3.0) from the repository's Releases page.
+Download [`gitrism-0.4.0.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.4.0) from the repository's Releases page.
 
 In VS Code, choose **Extensions: Install from VSIX...**, or run:
 
 ```bash
-code --install-extension gitrism-0.3.0.vsix --force
+code --install-extension gitrism-0.4.0.vsix --force
 ```
 
 For Remote SSH, install the extension on the remote Extension Host. Reload the window after installation if VS Code requests it.
@@ -60,6 +66,20 @@ Click the repository name to switch repositories. Select a commit to inspect its
 
 Editor context menus provide file history, line blame, an inline blame toggle, and history for selected lines.
 
+## Code provenance
+
+CodeLens is enabled by default above functions, methods, classes, interfaces, and enums identified by the language extension. Click the author/date lens to open the latest commit represented in those retained lines. Click the author count to inspect a breakdown by email and open a related commit. A file-history lens is also available; files without language symbols use file-level attribution.
+
+Attribution describes the lines currently retained in the file. It does not count deleted code or every historical contributor. Saved changes that have not been committed are identified separately; unsaved documents are skipped to avoid stale line positions. Untracked files have no attribution.
+
+## Advanced search and personal activity
+
+Choose **Advanced** in the graph filters to select dates, authors, a merge mode, first-parent traversal, or **Only my commits**. Separate authors with semicolons. Author filters match literal text without case sensitivity and accept any listed author; message, date, merge, and path filters combine with them. Dates include the full selected days in your client timezone and filter the Git committer timestamp. First-parent traversal follows the first parent from each selected reference; focus on one branch to isolate its integration history.
+
+When no commit is selected, the right pane displays your activity across reachable local references, including fetched remote branches and a detached HEAD. The calendar defaults to 13 weeks in a narrow pane and adapts to 26 or 52 weeks when space permits. You can also choose the period explicitly. Clicking a day applies your exact email, that day's date range, and the non-merge filter. Use **Back to your activity** in commit details to return to the calendar.
+
+Personal identity comes from `git config user.email` in the current repository, with an exact, case-insensitive email match. Collaborators, including people with the same name, are excluded. Merge commits, synthetic stash commits, and Git notes are excluded, and commits reachable through multiple references count once. Missing identity shows a configuration hint. The calendar measures local authored commits by committer date; it does not include GitHub issues, pull requests, or other server activity. Commits made with other email addresses are not included.
+
 ## Language
 
 Gitrism follows the display language selected in VS Code. English, Simplified Chinese (`zh-CN`), and Traditional Chinese (`zh-TW`) are supported; other display languages use English.
@@ -71,6 +91,18 @@ Commit messages, author names, references, paths, and raw Git output retain thei
 See [localization notes](docs/localization.md) for translation maintenance.
 
 ## Settings
+
+CodeLens is enabled independently of inline blame. Its default limits are 5,000 lines and 100 symbol locations per file:
+
+```json
+{
+  "gitrism.codeLens.enabled": true,
+  "gitrism.codeLens.maxLines": 5000,
+  "gitrism.codeLens.maxSymbols": 100
+}
+```
+
+VS Code's `editor.codeLens` setting must also be enabled. Set `gitrism.codeLens.enabled` to `false` to hide Gitrism lenses.
 
 Inline blame defaults to the current line when enabled:
 
@@ -119,9 +151,9 @@ npm test
 npm run package
 ```
 
-Press `F5` in VS Code to launch an Extension Development Host. The package command creates `gitrism-0.3.0.vsix` locally; it does not publish the extension.
+Press `F5` in VS Code to launch an Extension Development Host. The package command creates `gitrism-0.4.0.vsix` locally; it does not publish the extension.
 
-Tests create temporary Git repositories and cover topology, file paths and renames, staging, comparisons, stashes, worktrees, conflicts, and interactive rebase. Browser tests use Chrome to verify the real DOM, content security policy, escaping, draft persistence, themes, and narrow layouts.
+Tests create temporary Git repositories and cover topology, file paths and renames, staging, comparisons, stashes, worktrees, conflicts, and interactive rebase. CodeLens tests cover symbol ranges, email grouping, stale reads, and caching; calendar tests cover local dates and daylight saving transitions. Browser tests use Chrome to verify the real DOM, content security policy, escaping, draft persistence, themes, and narrow layouts.
 
 Set `GITRISM_CHROME` if Chrome is installed at a different path. Browser tests report a skip when Chrome is unavailable. Screenshots are written to language subdirectories under `/tmp/gitrism-preview` by default; override this with `GITRISM_SCREENSHOTS`.
 
@@ -129,7 +161,7 @@ Set `GITRISM_CHROME` if Chrome is installed at a different path. Browser tests r
 
 Git reads, diffs, and history analysis happen locally. Network operations occur when you request fetch, pull, push, or sync and use the repository's configured remotes. Git hooks and credential helpers follow the local Git configuration.
 
-Gitrism independently implements common Git workflows. It does not include GitLens code or assets, modify GitLens, or bypass subscription checks. See [feature scope and roadmap](docs/feature-scope.md) for current limits and planned work, including CodeLens, pull request integrations, and optional AI assistance.
+Gitrism independently implements common Git workflows. It does not include GitLens code or assets, modify GitLens, or bypass subscription checks. See [feature scope and roadmap](docs/feature-scope.md) for current limits and planned work, including pull request integrations, patch workflows, and optional AI assistance.
 
 Gitrism is not affiliated with or endorsed by GitKraken or the maintainers of other Git extensions. Product names and marks belong to their respective owners. See the [preliminary intellectual property review](docs/ip-review-2026-10-05.md) for the checks performed and their limitations.
 

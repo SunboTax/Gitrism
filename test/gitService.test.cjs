@@ -166,3 +166,45 @@ test('graph lanes preserve disconnected tips and boundaries', () => {
   const cut=layoutGraph(commits.slice(0,1)); assert.deepEqual(cut.boundary,['b','c']);
   assert.deepEqual(layoutGraph([]),{rows:[],width:1,boundary:[]});
 });
+
+test('advanced searches combine literal authors, commit dates, merge modes and first-parent history', async t => {
+  const f=await fixture(t,'A [literal]');
+  function commit(subject,email,day) {
+    execFileSync('git',['-c','user.email='+email,'commit','--allow-empty','-m',subject],{cwd:f.root,env:{...process.env,GIT_AUTHOR_DATE:day+'T10:00:00Z',GIT_COMMITTER_DATE:day+'T10:00:00Z'}});
+    return f.run('rev-parse','HEAD');
+  }
+  const initial=commit('base','me@example.invalid','2026-10-01');
+  f.run('branch','feature');
+  const own=commit('needle [literal]','ME@example.invalid','2026-10-02');
+  f.run('checkout','-q','feature');const collaborator=commit('needle collaborator','other@example.invalid','2026-10-03');
+  f.run('checkout','-q','main');f.run('merge','--no-ff','feature','-m','merge');
+  assert.deepEqual((await f.service.graph(20,{query:'[literal]',authors:['does not exist','A [literal]'],since:'2026-10-02T00:00:00Z',until:'2026-10-02T23:59:59Z',merges:'exclude'})).map(c=>c.hash),[own]);
+  assert.equal((await f.service.graph(20,{ref:'main',merges:'only'})).length,1);
+  assert.ok(!(await f.service.graph(20,{ref:'main',firstParent:true})).some(c=>c.hash===collaborator));
+  assert.deepEqual((await f.service.graph(20,{authorEmail:'me@example.invalid',merges:'exclude'})).map(c=>c.hash),[own,initial]);
+  for(const options of [{since:'2026-02-30T00:00:00Z'},{since:'2026-10-03T00:00:00Z',until:'2026-10-01T00:00:00Z'},{authors:['bad\nauthor']},{merges:'invalid'},{authorEmail:'me@example.invalid',authors:['other']},{authorEmail:'me@example.invalid',searchBy:'author',query:'other'}])await assert.rejects(f.service.graph(20,options),GitError);
+});
+
+test('personal activity excludes same-name collaborators, merges, stash and notes; deduplicates refs and includes detached HEAD', async t => {
+  const f=await fixture(t,'Same Name'), now=new Date('2026-10-10T12:00:00Z');
+  const commit=(email,day)=>execFileSync('git',['-c','user.email='+email,'commit','--allow-empty','-m','activity'],{cwd:f.root,env:{...process.env,GIT_AUTHOR_DATE:day+'T10:00:00Z',GIT_COMMITTER_DATE:day+'T10:00:00Z'}});
+  assert.deepEqual(await f.service.personalActivity(now),{email:'gitrism@example.invalid',timestamps:[]});
+  commit('gitrism@example.invalid','2026-10-01');f.run('branch','duplicate');
+  commit('other@example.invalid','2026-10-02');
+  f.run('branch','feature');commit('GITRISM@example.invalid','2026-10-03');
+  f.run('checkout','-q','feature');commit('other@example.invalid','2026-10-04');
+  f.run('checkout','-q','main');
+  execFileSync('git',['merge','--no-ff','feature','-m','merge'],{cwd:f.root,env:{...process.env,GIT_AUTHOR_DATE:'2026-10-05T10:00:00Z',GIT_COMMITTER_DATE:'2026-10-05T10:00:00Z'}});
+  await f.write('stash.txt','untracked');await f.service.stashPush('exclude from activity');
+  f.run('notes','add','-m','a note');
+  let activity=await f.service.personalActivity(now);assert.equal(activity.timestamps.length,2);
+  assert.deepEqual(activity.timestamps.sort(),['2026-10-01','2026-10-03'].map(d=>Date.parse(d+'T10:00:00Z')/1000));
+  f.run('checkout','-q','--detach');commit('gitrism@example.invalid','2026-10-06');
+  assert.equal((await f.service.personalActivity(now)).timestamps.length,3);
+  assert.ok((await f.service.graph()).some(c=>c.hash===f.run('rev-parse','HEAD')));
+  const originalRun=f.service.run.bind(f.service);
+  f.service.run=async args=>{if(args[0]==='config')throw new GitError('missing',undefined,1);return originalRun(args);};
+  assert.deepEqual(await f.service.personalActivity(now),{timestamps:[]});
+  f.service.run=async()=>{throw new GitError('failed','permission denied',128);};
+  await assert.rejects(f.service.personalActivity(now),e=>e.detail==='permission denied');
+});

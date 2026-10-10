@@ -2,10 +2,11 @@
 
 Gitrism independently implements common local Git workflows. The initial design referenced the commands and workflow categories exposed by the locally installed GitLens 19.3.0 manifest. The Git service, topology layout, interface, and assets are independently implemented; Gitrism contains no GitLens code or assets and does not modify subscription checks.
 
-This document describes actual behavior in Gitrism 0.4.0. It does not claim complete parity with another product or subscription tier.
+This document describes actual behavior in Gitrism 0.4.1. It does not claim complete parity with another product or subscription tier.
 
 | Workflow | Current support | Limits |
 | --- | --- | --- |
+| Adjustable panes | Sidebar width, history/detail proportions, narrow graph height, keyboard controls, and saved preferences | Navigation becomes horizontal in compact windows; preferences are stored separately per webview |
 | Commit graph | Parent topology, branch and merge lanes, references, and incremental loading | Up to 2,000 commits per graph query |
 | Search and history | Messages, multiple literal authors, personal email, hashes, branches, tags, paths, date ranges, merge modes, and first-parent traversal | Dates filter committer time in the client timezone; filtered parents may be absent |
 | CodeLens | Language-provider function/class ranges, retained-line commit links, email-based author breakdowns, and file history | Current retained lines only; skips unsaved or untracked files; default limits of 5,000 lines and 100 symbol locations |
@@ -41,6 +42,6 @@ Gitrism has no cloud patch service or team collaboration backend. Personal workf
 - CodeLens tests covering language symbol nesting and fallback, identity grouping, file limits, cache invalidation, cancellation, and stale documents.
 - Personal activity tests covering own-email matching, collaborator exclusion, reference deduplication, detached HEAD, stash/notes exclusion, local calendar boundaries, and daylight saving transitions.
 - Controller tests covering stale repository reads, request validation, and mutation locks shared across panels.
-- Chrome tests covering the real DOM, CSP, escaping, graph details, file diff requests, draft persistence, navigation, independent timelines, rebase plan editing, light/dark themes, and narrow views.
+- Chrome tests covering the real DOM, CSP, escaping, graph details, file diff requests, draft persistence, navigation, independent timelines, rebase plan editing, light/dark themes, narrow views, real mouse resizing, keyboard size limits and resets, cancelled drags, layout persistence, and scroll preservation during concurrent updates.
 
 The tests do not push or pull the user's working repository and do not constitute a full VS Code Extension Host acceptance suite. Credential behavior and host integration depend on the installation environment.

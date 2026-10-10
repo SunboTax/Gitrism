@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1
+
+- Add draggable dividers for the navigation sidebar and history/detail panes, including the file timeline.
+- Preserve navigation width and detail proportions across refreshes, repository changes, and webview recreation, with separate preferences per view and size limits for smaller windows.
+- Allow vertical graph-height adjustment when narrow windows stack the graph above details; keep horizontal navigation compact.
+- Support keyboard sizing, larger Shift steps, Home/End limits, double-click or Enter reset, and Escape cancellation, with localized separator labels and size announcements.
+- Resize without rebuilding the interface during a drag; preserve pointer capture, scrolling, and form content through concurrent repository updates, and adapt the personal calendar to the new pane width.
+- Verify real pointer dragging, responsive layouts, keyboard controls, persistence, and strict CSP in English, Simplified Chinese, and Traditional Chinese.
+
 ## 0.4.0
 
 - Add independently implemented editor CodeLens for function and class attribution, retained-line commit links, email-based author breakdowns, and URI-aware file history.

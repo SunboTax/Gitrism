@@ -38,7 +38,17 @@ These previews use sample repository data. Colors follow your VS Code theme.
 - **Multiple repositories:** select workspace repositories and nested repositories discovered by VS Code's built-in Git extension.
 - **Remote operations:** fetch, pull with `--ff-only`, push, and sync using existing Git credentials, with an optional SSH SOCKS5 proxy.
 
-The editor graph and bottom panel share the same workspace interface. The interface follows the VS Code display language, supports English, Simplified Chinese, and Traditional Chinese, and combines an original prism identity with the active VS Code theme. Navigation moves from a sidebar to a horizontal strip in narrow windows and short panels. Compact graph rows keep history readable, with author, date, and hash available in commit details.
+The editor graph and bottom panel share the same workspace interface. Navigation and history/detail dividers can be dragged to resize the panes. The interface follows the VS Code display language, supports English, Simplified Chinese, and Traditional Chinese, and combines an original prism identity with the active VS Code theme. Navigation moves from a sidebar to a horizontal strip in narrow windows and short panels. Compact graph rows keep history readable, with author, date, and hash available in commit details.
+
+## Adjustable layout
+
+Drag the divider beside the navigation sidebar to change its width. Drag the divider between history and details to give either pane more room; the graph and file timeline share the same detail proportion. Width limits keep both panes usable, and your preferences survive refreshes, repository changes, and webview recreation within the same view. The editor view and bottom panel keep their own preferences.
+
+In narrow windows, navigation becomes a horizontal strip, and the graph/details divider moves between the stacked panes. Drag it up or down to adjust the graph height. Widening the activity pane also updates its automatic calendar period.
+
+Double-click a divider or focus it and press Enter to restore its responsive default. Arrow keys make small adjustments; hold Shift for larger steps. Home and End select the size limits. Press Escape during a drag to cancel it.
+
+![Gitrism with resized navigation and history panes](docs/images/resizable-panes.png)
 
 ## Working changes
 
@@ -48,12 +58,12 @@ Stage files, inspect diffs, and compose commits from the same workspace:
 
 ## Install
 
-Download [`gitrism-0.4.0.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.4.0) from the repository's Releases page.
+Download [`gitrism-0.4.1.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.4.1) from the repository's Releases page.
 
 In VS Code, choose **Extensions: Install from VSIX...**, or run:
 
 ```bash
-code --install-extension gitrism-0.4.0.vsix --force
+code --install-extension gitrism-0.4.1.vsix --force
 ```
 
 For Remote SSH, install the extension on the remote Extension Host. Reload the window after installation if VS Code requests it.
@@ -151,9 +161,9 @@ npm test
 npm run package
 ```
 
-Press `F5` in VS Code to launch an Extension Development Host. The package command creates `gitrism-0.4.0.vsix` locally; it does not publish the extension.
+Press `F5` in VS Code to launch an Extension Development Host. The package command creates `gitrism-0.4.1.vsix` locally; it does not publish the extension.
 
-Tests create temporary Git repositories and cover topology, file paths and renames, staging, comparisons, stashes, worktrees, conflicts, and interactive rebase. CodeLens tests cover symbol ranges, email grouping, stale reads, and caching; calendar tests cover local dates and daylight saving transitions. Browser tests use Chrome to verify the real DOM, content security policy, escaping, draft persistence, themes, and narrow layouts.
+Tests create temporary Git repositories and cover topology, file paths and renames, staging, comparisons, stashes, worktrees, conflicts, and interactive rebase. CodeLens tests cover symbol ranges, email grouping, stale reads, and caching; calendar tests cover local dates and daylight saving transitions. Browser tests use Chrome to verify the real DOM, content security policy, escaping, draft persistence, themes, narrow layouts, mouse dragging, keyboard resizing, layout persistence, and scroll preservation.
 
 Set `GITRISM_CHROME` if Chrome is installed at a different path. Browser tests report a skip when Chrome is unavailable. Screenshots are written to language subdirectories under `/tmp/gitrism-preview` by default; override this with `GITRISM_SCREENSHOTS`.
 

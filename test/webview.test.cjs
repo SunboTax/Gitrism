@@ -6,7 +6,7 @@ const os = require('node:os');
 const http = require('node:http');
 const { spawn } = require('node:child_process');
 
-for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, graph/details, tabs, draft persistence, searches, timeline and responsive themes', {timeout:60000}, async t => {
+for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, graph/details, tabs, draft persistence, searches, timeline, responsive themes and pane resizing', {timeout:60000}, async t => {
   const {createTranslator}=require('../resources/i18n');
   const messages=locale==='en'?{}:require('../resources/locales/'+locale.toLowerCase()+'.json');
   const translate=createTranslator(messages);
@@ -24,9 +24,9 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
     commits,tags:[{name:'v0.1.0',date:commits[0].date,subject:'Release',hash:hash(1)}],stashes:[{ref:'stash@{0}',hash:hash(3),subject:'WIP workspace changes',date:commits[0].date}],worktrees:[{path:'/workspace/project',branch:'main',hash:hash(1)},{path:'/workspace/project-feature',branch:'feature/graph',hash:hash(3)}],hasMore:true,options:{},limit:100};
   const details=Object.fromEntries(commits.map(c=>[c.hash,{...c,email:'gitrism@example.invalid',message:c.subject,files:[{path:'src/app.ts',status:'M'},{path:'resources/workspace.css',status:'A'}],stats:'2 files changed, 84 insertions(+), 12 deletions(-)'}]));
   const theme=':root{--vscode-font-family:system-ui;--vscode-font-size:13px;--vscode-foreground:#ddd;--vscode-editor-background:#1e1e1e;--vscode-sideBar-background:#252526;--vscode-panel-border:#444;--vscode-input-background:#333;--vscode-input-foreground:#ddd;--vscode-descriptionForeground:#999;--vscode-charts-blue:#75baff;--vscode-textLink-foreground:#75baff}@media(prefers-color-scheme:light){:root{--vscode-foreground:#333;--vscode-editor-background:#fff;--vscode-sideBar-background:#f5f5f5;--vscode-panel-border:#ddd;--vscode-input-background:#eee;--vscode-input-foreground:#333;--vscode-descriptionForeground:#666;--vscode-charts-blue:#176abb;--vscode-textLink-foreground:#176abb}}';
-  const bridge=`const fixture=${JSON.stringify(data)}, details=${JSON.stringify(details)}; let saved; window.sent=[];window.deliver=m=>window.dispatchEvent(new MessageEvent('message',{data:m}));window.acquireVsCodeApi=()=>({getState:()=>saved,setState:s=>{saved=structuredClone(s)},postMessage:m=>{sent.push(m);setTimeout(()=>{if(m.type==='ready'||m.type==='refresh'){deliver({type:'data',data:fixture});deliver({type:'activity',root:fixture.root,activity:{email:'gitrism@example.invalid',timestamps:[Math.floor(Date.now()/1000)-86400,Math.floor(Date.now()/1000)-86400,Math.floor(Date.now()/1000)-86400*3]}})}if(m.type==='details')deliver({type:'details',request:m.request,detail:details[m.hash]});if(m.type==='search'){fixture.options={...m};delete fixture.options.type;deliver({type:'data',data:fixture})}if(m.type==='compare')deliver({type:'comparison',request:m.request,comparison:{from:m.from,to:m.to,ahead:1,behind:0,files:[{status:'M',path:'src/app.ts'}],stats:'1 file changed',commits:fixture.commits.slice(0,1)}});if(m.type==='timelineHistory')deliver({type:'timelineHistory',request:m.request,file:m.file,commits:fixture.commits.slice(1)})},0)}});`;
+  const bridge=`const fixture=${JSON.stringify(data)}, details=${JSON.stringify(details)}; let saved=JSON.parse(sessionStorage.getItem('gitrism-state')||'null'); window.sent=[];window.deliver=m=>window.dispatchEvent(new MessageEvent('message',{data:m}));window.acquireVsCodeApi=()=>({getState:()=>saved,setState:s=>{saved=structuredClone(s);sessionStorage.setItem('gitrism-state',JSON.stringify(saved))},postMessage:m=>{sent.push(m);setTimeout(()=>{if(m.type==='ready'||m.type==='refresh'){deliver({type:'data',data:fixture});deliver({type:'activity',root:fixture.root,activity:{email:'gitrism@example.invalid',timestamps:[Math.floor(Date.now()/1000)-86400,Math.floor(Date.now()/1000)-86400,Math.floor(Date.now()/1000)-86400*3]}})}if(m.type==='details')deliver({type:'details',request:m.request,detail:details[m.hash]});if(m.type==='search'){fixture.options={...m};delete fixture.options.type;deliver({type:'data',data:fixture})}if(m.type==='compare')deliver({type:'comparison',request:m.request,comparison:{from:m.from,to:m.to,ahead:1,behind:0,files:[{status:'M',path:'src/app.ts'}],stats:'1 file changed',commits:fixture.commits.slice(0,1)}});if(m.type==='timelineHistory')deliver({type:'timelineHistory',request:m.request,file:m.file,commits:fixture.commits.slice(1)})},0)}});`;
   const localization=JSON.stringify({locale,messages}).replace(/</g,'\\u003c');
-  const html='<!DOCTYPE html><html lang="'+locale+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'self\'; script-src \'nonce-test\';"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/timeline.css"></head><body><main id="app"></main><div id="toast" role="status" hidden></div><script nonce="test" src="/bridge.js"></script><script id="gitrism-localization" type="application/json" nonce="test">'+localization+'</script><script nonce="test" src="/i18n.js"></script><script nonce="test" src="/graphLayout.js"></script><script nonce="test" src="/activity.js"></script><script nonce="test" src="/workspace.js"></script></body></html>';
+  const html='<!DOCTYPE html><html lang="'+locale+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'self\'; script-src \'nonce-test\';"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/timeline.css"></head><body><main id="app"></main><div id="toast" role="status" hidden></div><script nonce="test" src="/bridge.js"></script><script id="gitrism-localization" type="application/json" nonce="test">'+localization+'</script><script nonce="test" src="/i18n.js"></script><script nonce="test" src="/graphLayout.js"></script><script nonce="test" src="/activity.js"></script><script nonce="test" src="/paneResize.js"></script><script nonce="test" src="/workspace.js"></script></body></html>';
   const rebaseBridge=`const originalApi=acquireVsCodeApi;window.acquireVsCodeApi=()=>{const api=originalApi(),post=api.postMessage;api.postMessage=m=>{post(m);if(m.type==='rebasePlan')setTimeout(()=>deliver({type:'rebasePlan',request:m.request,plan:{base:m.ref,head:fixture.commits[0].hash,branch:'main',commits:fixture.commits.slice(1).reverse()}}),0)};return api};`;
   const server=http.createServer(async(req,res)=>{
     try {
@@ -34,7 +34,7 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
       if(name==='/') {res.setHeader('content-type','text/html');res.end(html);return;}
       if(name==='/bridge.js'){res.setHeader('content-type','text/javascript');res.end(bridge+rebaseBridge);return;}
       if(name==='/theme.css'){res.setHeader('content-type','text/css');res.end(theme);return;}
-      if(!['/workspace.css','/timeline.css','/workspace.js','/graphLayout.js','/i18n.js','/activity.js'].includes(name)){res.writeHead(404);res.end();return;}
+      if(!['/workspace.css','/timeline.css','/workspace.js','/graphLayout.js','/i18n.js','/activity.js','/paneResize.js'].includes(name)){res.writeHead(404);res.end();return;}
       res.setHeader('content-type',name.endsWith('.js')?'text/javascript':'text/css');res.end(await fs.readFile(path.join(__dirname,'../resources',name)));
     }catch(error){res.writeHead(500);res.end(String(error));}
   });
@@ -56,6 +56,12 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   const evaluate=async expression=>{const r=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(JSON.stringify(r.exceptionDetails));return r.result.value;};
   const until=async expression=>{for(let i=0;i<80;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,25));}throw new Error('Condition did not become true: '+expression);};
   const click=async selector=>{await evaluate(`{const node=document.querySelector(${JSON.stringify(selector)});if(typeof node.click==='function')node.click();else node.dispatchEvent(new MouseEvent('click',{bubbles:true}));}`);};
+  const box=selector=>evaluate(`{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();({x:r.x+r.width/2,y:r.y+r.height/2,width:r.width,height:r.height})}`);
+  const press=async selector=>{const p=await box(selector);await call('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.x,y:p.y});await call('Input.dispatchMouseEvent',{type:'mousePressed',x:p.x,y:p.y,button:'left',buttons:1,clickCount:1});return p;};
+  const move=async(p,dx=0,dy=0)=>{await call('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.x+dx,y:p.y+dy,button:'left',buttons:1});};
+  const release=async(p,dx=0,dy=0)=>{await call('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.x+dx,y:p.y+dy,button:'left',buttons:0,clickCount:1});};
+  const doubleClick=async selector=>{const p=await box(selector);for(const count of [1,2]){await call('Input.dispatchMouseEvent',{type:'mousePressed',x:p.x,y:p.y,button:'left',buttons:1,clickCount:count});await call('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.x,y:p.y,button:'left',buttons:0,clickCount:count});}};
+  const key=async(selector,key,shift=false)=>evaluate(`{const node=document.querySelector(${JSON.stringify(selector)});node.focus();node.dispatchEvent(new KeyboardEvent('keydown',{key:${JSON.stringify(key)},shiftKey:${shift},bubbles:true}));}`);
   await call('Runtime.enable');await call('Log.enable');await call('Page.enable');
   await call('Emulation.setDeviceMetricsOverride',{width:1440,height:780,deviceScaleFactor:1,mobile:false});
   await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
@@ -71,10 +77,45 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   await evaluate("fixture.commits[2].subject='中文提交消息保持原文';deliver({type:'data',data:fixture})");
   assert.equal(await evaluate("document.querySelectorAll('.commit-subject')[2].lastElementChild.textContent"),'中文提交消息保持原文');
   await evaluate("fixture.commits[2].subject='Draw topology from commit parents';deliver({type:'data',data:fixture})");
+  // Trusted mouse events exercise capture, persistence, stale refreshes, and constraints.
+  assert.equal(await evaluate("document.getElementById('navigation-resizer').getAttribute('aria-label')"),translate('Resize navigation'));
+  const navStart=(await box('.tabs')).width;
+  let position=await press('#navigation-resizer');await move(position,60);await release(position,60);
+  assert.ok(Math.abs((await box('.tabs')).width-navStart-60)<1);
+  const detailStart=(await box('.detail-pane')).width;
+  position=await press('#detail-resizer');await move(position,-160);
+  await until("document.querySelector('.detail-pane').clientWidth>480");
+  await evaluate("window.dragHandle=document.getElementById('detail-resizer');deliver({type:'data',data:fixture})");
+  assert.equal(await evaluate("dragHandle===document.getElementById('detail-resizer') && dragHandle.isConnected"),true,'Repository refresh must not replace a captured divider');
+  await release(position,-160);
+  assert.ok(Math.abs((await box('.detail-pane')).width-detailStart-160)<1);
+  await until("document.querySelector('.activity-svg').getAttribute('viewBox')==='0 0 390 128'");
+  assert.ok(await evaluate("saved.layout.detailRatio>0 && saved.layout.navigation>200"));
+  await call('Page.reload');await until("document.querySelectorAll('.commit-row').length===4");
+  assert.ok(Math.abs((await box('.tabs')).width-navStart-60)<1,'Navigation width should survive webview recreation');
+  assert.ok(Math.abs((await box('.detail-pane')).width-detailStart-160)<1,'Detail ratio should survive webview recreation');
+  await evaluate("deliver({type:'reset'})");await click('[data-action=refresh]');await until("document.querySelectorAll('.commit-row').length===4");
+  assert.ok(Math.abs((await box('.tabs')).width-navStart-60)<1,'Repository changes should keep layout preferences');
+  await key('#detail-resizer','ArrowLeft');assert.ok(Math.abs((await box('.detail-pane')).width-detailStart-176)<1);
+  position=await press('#detail-resizer');await move(position,-80);await until("document.querySelector('.detail-pane').clientWidth>550");
+  await key('#detail-resizer','Escape');await release(position,-80);
+  assert.ok(Math.abs((await box('.detail-pane')).width-detailStart-176)<1,'Escape restores the pre-drag layout');
+  assert.equal(await evaluate("document.body.classList.contains('resizing-panes')"),false);
+  await key('#detail-resizer','Home');assert.ok(Math.abs((await box('.detail-pane')).width-240)<1);
+  await key('#detail-resizer','End');
+  assert.ok((await box('.graph-area')).width>=319,'History keeps usable space at the upper detail limit');
+  assert.equal(await evaluate("document.documentElement.scrollWidth<=1440"),true);
+  await key('#navigation-resizer','End');assert.ok((await box('.tabs')).width<=360);
+  await key('#navigation-resizer','Home');assert.ok(Math.abs((await box('.tabs')).width-132)<1);
+  await doubleClick('#navigation-resizer');await doubleClick('#detail-resizer');
+  assert.ok(Math.abs((await box('.tabs')).width-navStart)<1);
+  assert.ok(Math.abs((await box('.detail-pane')).width-detailStart)<1);
+  assert.equal(await evaluate("Object.keys(saved.layout).length"),0);
   await until("document.querySelectorAll('.activity-day').length>80");
   assert.equal(await evaluate("document.querySelector('.activity-stats strong').textContent"),'3');
   assert.equal(await evaluate("document.querySelectorAll('.activity-stats strong')[1].textContent"),'2');
   assert.equal(await evaluate("document.querySelector('.activity-identity').textContent"),'gitrism@example.invalid');
+  await evaluate("fixture.commits[3].subject='Create the initial repository';deliver({type:'data',data:fixture})");
   await click('.advanced-search summary');
   await evaluate("document.getElementById('since').value='2026-10-01';document.getElementById('until').value='2026-10-05';document.getElementById('authors').value='Chen; Tester';document.getElementById('merges').value='exclude';document.getElementById('first-parent').checked=true");
   await click('.advanced-panel [data-action=search]');await until("fixture.options.firstParent===true");
@@ -143,6 +184,14 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   assert.ok(await evaluate("document.documentElement.scrollWidth<=480"));
   await screenshot('narrow.png');
   await click('[data-action=clearSelection]');await until("document.querySelector('.activity-svg')?.getAttribute('viewBox')==='0 0 390 128'");await screenshot('activity-narrow.png');
+  assert.equal(await evaluate("document.getElementById('navigation-resizer').getClientRects().length"),0);
+  assert.equal(await evaluate("document.getElementById('detail-resizer').getAttribute('aria-orientation')"),'horizontal');
+  const narrowHeight=(await box('.graph-area')).height;
+  position=await press('#detail-resizer');await move(position,0,70);await release(position,0,70);
+  assert.ok(Math.abs((await box('.graph-area')).height-narrowHeight-70)<1);
+  assert.ok(await evaluate("saved.layout.graphHeight>0"));
+  await key('#detail-resizer','ArrowUp');assert.ok(Math.abs((await box('.graph-area')).height-narrowHeight-54)<1);
+  await key('#detail-resizer','Enter');assert.ok(Math.abs((await box('.graph-area')).height-narrowHeight)<1);
   // All views must fit a small window; cards/forms must not overflow the document.
   await call('Emulation.setDeviceMetricsOverride',{width:320,height:740,deviceScaleFactor:1,mobile:false});
   for(const tab of ['graph','changes','branches','tags','stashes','worktrees','compare','timeline','rebase']) {
@@ -160,6 +209,11 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   assert.ok(await evaluate("document.querySelector('.graph-layout').getBoundingClientRect().bottom<=document.querySelector('.footer').getBoundingClientRect().top+1"),'Filters and graph must fit above the footer');
   await evaluate("document.getElementById('graph-scroll').scrollTop=160;deliver({type:'data',data:fixture})");
   assert.equal(await evaluate("document.getElementById('graph-scroll').scrollTop"),160);
+  position=await press('#detail-resizer');await move(position,-80);
+  await evaluate("deliver({type:'data',data:fixture})");await release(position,-80);
+  assert.equal(await evaluate("document.getElementById('graph-scroll').scrollTop"),160);
+  assert.ok(await evaluate("document.getElementById('detail-resizer').clientHeight>=100"));
+  await doubleClick('#detail-resizer');
   await screenshot('panel.png');
   await click('.advanced-search summary');
   assert.ok(await evaluate("document.querySelector('.advanced-panel').getBoundingClientRect().bottom<=document.querySelector('.footer').getBoundingClientRect().top+1"));
@@ -170,6 +224,13 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   await click('[data-action=clearSearch]');await until("fixture.options.query===''");
   await evaluate("fixture.commits=fixture.commits.slice(0,16).map((c,i)=>({...c,subject:['Add personal activity calendar','Improve code attribution links','Support literal author filters','Keep remote dates in client timezone','Refine compact workspace layout','Add retained-line author details','Validate advanced search requests','Handle missing repository identity'][i%8]}));fixture.hasMore=false;deliver({type:'data',data:fixture});document.getElementById('graph-scroll').scrollTop=0;deliver({type:'activity',root:fixture.root,activity:{email:'gitrism@example.invalid',timestamps:Array.from({length:90},(_,i)=>Array.from({length:i%7<5?(i*13)%9:0},()=>Math.floor(Date.now()/1000)-i*86400)).flat()}})");
   await screenshot('activity.png');
+  position=await press('#navigation-resizer');await move(position,45);await release(position,45);
+  position=await press('#detail-resizer');await move(position,-220);await release(position,-220);
+  await screenshot('resized-workspace.png');
+  const graphRatio=await evaluate("saved.layout.detailRatio");
+  await click('[data-tab=timeline]');await evaluate("document.getElementById('timeline-file').value='src/app.ts'");await click('[data-action=timelineSearch]');await until("document.querySelector('.timeline-layout')!==null");
+  assert.ok(Math.abs((await box('.detail-pane')).width/((await box('.timeline-layout')).width-8)-graphRatio)<.002);
+  await click('[data-tab=graph]');await doubleClick('#navigation-resizer');await doubleClick('#detail-resizer');
   await click('.advanced-search summary');await screenshot('advanced-search.png');
   assert.deepEqual(errors,[],'No script or CSP errors should occur');
 });

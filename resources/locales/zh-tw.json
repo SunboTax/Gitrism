@@ -301,5 +301,9 @@
   "Invalid author filter": "作者篩選條件無效",
   "Invalid author email": "作者郵箱無效",
   "Personal email cannot be combined with other author filters": "個人郵箱不能與其他作者篩選條件組合使用",
-  "The start date must not be after the end date": "起始日期不能晚於截止日期"
+  "The start date must not be after the end date": "起始日期不能晚於截止日期",
+  "{0} pixels": "{0} 像素",
+  "Resize navigation": "調整導覽列寬度",
+  "Resize history and details": "調整歷史與詳細資料面板大小",
+  "Drag to resize. Use arrow keys; double-click or press Enter to reset.": "拖曳調整大小，也可使用方向鍵；按兩下或按 Enter 還原預設。"
 }

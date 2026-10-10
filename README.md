@@ -165,6 +165,10 @@ Gitrism independently implements common Git workflows. It does not include GitLe
 
 Gitrism is not affiliated with or endorsed by GitKraken or the maintainers of other Git extensions. Product names and marks belong to their respective owners. See the [preliminary intellectual property review](docs/ip-review-2026-10-05.md) for the checks performed and their limitations.
 
+## Community
+
+社区友链:[LNUXDO](https://linux.do/)--新一代极客与开源探索技术社区，真诚、友善、团结、专业。
+
 ## License
 
 [MIT](LICENSE).

@@ -6,7 +6,7 @@ const os = require('node:os');
 const http = require('node:http');
 const { spawn } = require('node:child_process');
 
-for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, graph/details, tabs, draft persistence, searches, timeline, responsive themes and pane resizing', {timeout:60000}, async t => {
+for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, graph/details, tabs, draft persistence, searches, timeline, responsive themes, pane resizing and directory trees', {timeout:60000}, async t => {
   const {createTranslator}=require('../resources/i18n');
   const messages=locale==='en'?{}:require('../resources/locales/'+locale.toLowerCase()+'.json');
   const translate=createTranslator(messages);
@@ -26,7 +26,7 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   const theme=':root{--vscode-font-family:system-ui;--vscode-font-size:13px;--vscode-foreground:#ddd;--vscode-editor-background:#1e1e1e;--vscode-sideBar-background:#252526;--vscode-panel-border:#444;--vscode-input-background:#333;--vscode-input-foreground:#ddd;--vscode-descriptionForeground:#999;--vscode-charts-blue:#75baff;--vscode-textLink-foreground:#75baff}@media(prefers-color-scheme:light){:root{--vscode-foreground:#333;--vscode-editor-background:#fff;--vscode-sideBar-background:#f5f5f5;--vscode-panel-border:#ddd;--vscode-input-background:#eee;--vscode-input-foreground:#333;--vscode-descriptionForeground:#666;--vscode-charts-blue:#176abb;--vscode-textLink-foreground:#176abb}}';
   const bridge=`const fixture=${JSON.stringify(data)}, details=${JSON.stringify(details)}; let saved=JSON.parse(sessionStorage.getItem('gitrism-state')||'null'); window.sent=[];window.deliver=m=>window.dispatchEvent(new MessageEvent('message',{data:m}));window.acquireVsCodeApi=()=>({getState:()=>saved,setState:s=>{saved=structuredClone(s);sessionStorage.setItem('gitrism-state',JSON.stringify(saved))},postMessage:m=>{sent.push(m);setTimeout(()=>{if(m.type==='ready'||m.type==='refresh'){deliver({type:'data',data:fixture});deliver({type:'activity',root:fixture.root,activity:{email:'gitrism@example.invalid',timestamps:[Math.floor(Date.now()/1000)-86400,Math.floor(Date.now()/1000)-86400,Math.floor(Date.now()/1000)-86400*3]}})}if(m.type==='details')deliver({type:'details',request:m.request,detail:details[m.hash]});if(m.type==='search'){fixture.options={...m};delete fixture.options.type;deliver({type:'data',data:fixture})}if(m.type==='compare')deliver({type:'comparison',request:m.request,comparison:{from:m.from,to:m.to,ahead:1,behind:0,files:[{status:'M',path:'src/app.ts'}],stats:'1 file changed',commits:fixture.commits.slice(0,1)}});if(m.type==='timelineHistory')deliver({type:'timelineHistory',request:m.request,file:m.file,commits:fixture.commits.slice(1)})},0)}});`;
   const localization=JSON.stringify({locale,messages}).replace(/</g,'\\u003c');
-  const html='<!DOCTYPE html><html lang="'+locale+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'self\'; script-src \'nonce-test\';"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/timeline.css"></head><body><main id="app"></main><div id="toast" role="status" hidden></div><script nonce="test" src="/bridge.js"></script><script id="gitrism-localization" type="application/json" nonce="test">'+localization+'</script><script nonce="test" src="/i18n.js"></script><script nonce="test" src="/graphLayout.js"></script><script nonce="test" src="/activity.js"></script><script nonce="test" src="/paneResize.js"></script><script nonce="test" src="/workspace.js"></script></body></html>';
+  const html='<!DOCTYPE html><html lang="'+locale+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'self\'; script-src \'nonce-test\';"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/timeline.css"></head><body><main id="app"></main><div id="toast" role="status" hidden></div><script nonce="test" src="/bridge.js"></script><script id="gitrism-localization" type="application/json" nonce="test">'+localization+'</script><script nonce="test" src="/i18n.js"></script><script nonce="test" src="/graphLayout.js"></script><script nonce="test" src="/activity.js"></script><script nonce="test" src="/paneResize.js"></script><script nonce="test" src="/workingTree.js"></script><script nonce="test" src="/workspace.js"></script></body></html>';
   const rebaseBridge=`const originalApi=acquireVsCodeApi;window.acquireVsCodeApi=()=>{const api=originalApi(),post=api.postMessage;api.postMessage=m=>{post(m);if(m.type==='rebasePlan')setTimeout(()=>deliver({type:'rebasePlan',request:m.request,plan:{base:m.ref,head:fixture.commits[0].hash,branch:'main',commits:fixture.commits.slice(1).reverse()}}),0)};return api};`;
   const server=http.createServer(async(req,res)=>{
     try {
@@ -34,7 +34,7 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
       if(name==='/') {res.setHeader('content-type','text/html');res.end(html);return;}
       if(name==='/bridge.js'){res.setHeader('content-type','text/javascript');res.end(bridge+rebaseBridge);return;}
       if(name==='/theme.css'){res.setHeader('content-type','text/css');res.end(theme);return;}
-      if(!['/workspace.css','/timeline.css','/workspace.js','/graphLayout.js','/i18n.js','/activity.js','/paneResize.js'].includes(name)){res.writeHead(404);res.end();return;}
+      if(!['/workspace.css','/timeline.css','/workspace.js','/graphLayout.js','/i18n.js','/activity.js','/paneResize.js','/workingTree.js'].includes(name)){res.writeHead(404);res.end();return;}
       res.setHeader('content-type',name.endsWith('.js')?'text/javascript':'text/css');res.end(await fs.readFile(path.join(__dirname,'../resources',name)));
     }catch(error){res.writeHead(500);res.end(String(error));}
   });
@@ -148,6 +148,58 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   assert.equal(await evaluate("document.getElementById('compare-from').value"),hash(1));
   await click('[data-tab="changes"]');
   await screenshot('changes.png');
+  // Directory mode keeps existing diff/stage targets and independently folds each status group.
+  await evaluate("fixture.status.files=[{path:'README.md',index:' ',working:'M'},{path:'src/api/index.ts',index:'M',working:'M'},{path:'src/ui/index.ts',index:' ',working:'M'},{path:'docs/deep/readme.md',index:' ',working:'D'},{path:'lib/renamed.ts',oldPath:'src/old.ts',index:'R',working:' '},{path:'src/conflict.ts',index:'U',working:'U',conflict:true},{path:'__proto__/constructor/file.ts',index:'?',working:'?'},{path:'<img src=x>/line\\nfile.ts',index:'?',working:'?'},...Array.from({length:80},(_,i)=>({path:'packages/feature'+Math.floor(i/10)+'/nested/file'+i+'.ts',index:' ',working:'M'}))];fixture.status.staged=2;fixture.status.conflicted=1;deliver({type:'data',data:fixture})");
+  await evaluate("{const draft=document.getElementById('draft');draft.value='Tree draft survives layout changes';draft.dispatchEvent(new Event('input',{bubbles:true}))}");
+  assert.equal(await evaluate("document.querySelector('[data-action=changesMode][data-mode=tree]').getAttribute('aria-pressed')"),'true');
+  assert.equal(await evaluate("document.querySelector('[data-mode=tree]').textContent"),translate('Directory tree'));
+  assert.equal(await evaluate("document.querySelectorAll('img').length"),0);
+  assert.equal(await evaluate("document.querySelector('[data-directory=\"working:src\"] .count').textContent"),'2');
+  assert.equal(await evaluate("document.querySelector('[data-directory=\"staged:src\"] .count').textContent"),'1');
+  assert.equal(await evaluate("document.querySelector('[data-directory=\"working:src/api\"] .file-diff>span:nth-child(2)').textContent"),'index.ts');
+  assert.equal(await evaluate("document.querySelector('[data-group=staged] [data-action=workingDiff][data-file=\"lib/renamed.ts\"]').title"),'src/old.ts → lib/renamed.ts');
+  await click('[data-group=working] [data-action=workingDiff][data-file="src/api/index.ts"]');
+  assert.deepEqual(await evaluate("sent.at(-1)"),{type:'workingDiff',file:'src/api/index.ts',staged:false});
+  await click('[data-group=staged] [data-action=workingDiff][data-file="src/api/index.ts"]');
+  assert.equal(await evaluate("sent.at(-1).staged"),true);
+  await click('[data-group=working] [data-action=stage][data-file="src/api/index.ts"]');assert.equal(await evaluate("sent.at(-1).file"),'src/api/index.ts');assert.equal(await evaluate("sent.at(-1).type"),'stage');
+  await click('[data-group=staged] [data-action=unstage][data-file="lib/renamed.ts"]');assert.equal(await evaluate("sent.at(-1).file"),'lib/renamed.ts');assert.equal(await evaluate("sent.at(-1).type"),'unstage');
+  await click('[data-directory="working:src"]>summary');await until("saved.changeDirectories?.['working:src']===false");
+  assert.equal(await evaluate("document.querySelector('[data-directory=\"staged:src\"]').open"),true);
+  await evaluate("deliver({type:'data',data:fixture})");await until("document.querySelector('[data-directory=\"working:src\"]').open===false");
+  await evaluate("document.querySelector('[data-directory=\"working:docs\"]>summary').click();deliver({type:'data',data:fixture})");
+  assert.equal(await evaluate("document.querySelector('[data-directory=\"working:docs\"]').open"),false,'An immediate refresh preserves directory toggles before the native toggle event');
+  await click('[data-tab=graph]');await click('[data-tab=changes]');assert.equal(await evaluate("document.querySelector('[data-directory=\"working:src\"]').open"),false);
+  await click('[data-action=collapseDirectories]');assert.equal(await evaluate("document.querySelectorAll('.working-directory[open]').length"),0);
+  await click('[data-action=expandDirectories]');assert.ok(await evaluate("[...document.querySelectorAll('.working-directory')].every(node=>node.open)"));
+  await evaluate("document.querySelector('.content-changes').scrollTop=220;deliver({type:'data',data:fixture})");
+  assert.equal(await evaluate("document.querySelector('.content-changes').scrollTop"),220);
+  await evaluate("document.querySelector('.content-changes').scrollTop=0;document.querySelector('[data-directory=\"working:src\"]>summary').focus()");
+  await call('Input.dispatchKeyEvent',{type:'keyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  await call('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  await until("saved.changeDirectories?.['working:src']===false");
+  await click('[data-action=expandDirectories]');
+  await evaluate("document.querySelector('[data-action=expandDirectories]').focus({preventScroll:true});document.querySelector('.content-changes').scrollTop=0");
+  await screenshot('directory-tree.png');
+  await call('Emulation.setDeviceMetricsOverride',{width:320,height:740,deviceScaleFactor:1,mobile:false});
+  assert.ok(await evaluate("document.documentElement.scrollWidth<=320 && document.querySelector('.content-changes').scrollWidth<=document.querySelector('.content-changes').clientWidth"),'Nested directory lists must fit a narrow window');
+  await screenshot('directory-narrow.png');
+  await call('Emulation.setDeviceMetricsOverride',{width:1440,height:780,deviceScaleFactor:1,mobile:false});
+  await click('[data-mode=list]');assert.equal(await evaluate("document.querySelectorAll('.working-directory').length"),0);
+  assert.equal(await evaluate("document.querySelector('[data-group=working] [data-file=\"src/api/index.ts\"]>span:nth-child(2)').textContent"),'src/api/index.ts');
+  assert.equal(await evaluate("saved.changesMode"),'list');
+  assert.equal(await evaluate("document.getElementById('draft').value"),'Tree draft survives layout changes');
+  await call('Page.reload');await until("document.querySelector('.content-changes')!==null");
+  assert.equal(await evaluate("document.querySelector('[data-mode=list]').getAttribute('aria-pressed')"),'true');
+  assert.equal(await evaluate("document.getElementById('draft').value"),'Tree draft survives layout changes');
+  await click('[data-mode=tree]');await click('[data-directory="working:src"]>summary');await until("saved.changeDirectories?.['working:src']===false");
+  await call('Page.reload');await until("document.querySelector('[data-directory=\"working:src\"]')!==null");
+  assert.equal(await evaluate("document.querySelector('[data-directory=\"working:src\"]').open"),false);
+  // A new repository starts with fresh directory expansion, preserving the selected layout mode.
+  await evaluate("deliver({type:'reset'});deliver({type:'data',data:fixture})");await click('[data-tab=changes]');
+  assert.equal(await evaluate("document.querySelector('[data-directory=\"working:src\"]').open"),true);
+  await evaluate("fixture.commits[3].subject='Create the initial repository';deliver({type:'data',data:fixture})");
+
   await evaluate("const draft=document.getElementById('draft');draft.value='Keep draft after refresh';draft.dispatchEvent(new Event('input',{bubbles:true}))");
   await click('[data-action="refresh"]');await until("document.getElementById('draft')?.value==='Keep draft after refresh'");
   await click('[data-action="stage"]');assert.equal(await evaluate("sent.at(-1).type"),'stage');

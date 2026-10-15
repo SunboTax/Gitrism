@@ -139,12 +139,32 @@
     const opts = state.searchDraft || data.options || {};
     return `<div class="view-heading"><div><span class="eyebrow">${tr("Repository history")}</span><h2>${tr("Commit graph")} <span class="count">${data.commits.length}${data.hasMore ? '+' : ''}</span></h2></div><span class="view-caption">${tr("Every change leaves a trace.")}</span></div><div class="filters"><select id="ref" aria-label="${tr("History reference")}">${refOptions(opts.ref)}</select><div class="search-control">${icon('search')}<select id="search-by" aria-label="${tr("Search field")}"><option value="message">${tr("Message")}</option><option value="author" ${opts.authorEmail?'disabled':''} ${opts.searchBy==='author'?'selected':''}>${tr("Author")}</option><option value="hash" ${opts.searchBy==='hash'?'selected':''}>${tr("Hash / reference")}</option></select><input id="search" type="search" value="${e(opts.query)}" placeholder="${tr("Search commits, press Enter")}" aria-label="${tr("Search commits")}"></div><input id="file-filter" value="${e(opts.file)}" placeholder="${tr("File path (optional)")}" aria-label="${tr("File history path")}">${advancedFilters(opts)}${btn(t("Filter"),'search','',true)}${btn(t("Clear"),'clearSearch')}</div>${opts.query || opts.file || opts.authors?.length || opts.authorEmail || opts.since || opts.until || opts.firstParent || (opts.merges && opts.merges!=='all') ? `<div class="hint">${tr("Filtered results; excluded parent commits are not shown in the graph.")}</div>` : ''}<div class="graph-layout"><section id="graph-area" class="graph-area ${layoutGraph(data.commits).width <= 3 ? 'graph-compact' : ''}" aria-label="${tr("Commit graph")}"><div class="graph-scroll" id="graph-scroll"><div class="graph-head"><span>${tr("Graph")}</span><span>${tr("Message and references")}</span><span>${tr("Author")}</span><span>${tr("Date")}</span><span>${tr("Hash")}</span></div>${graphRows(data.commits) || empty(t("No matching commits"), t("Create your first commit in Working changes to start a new repository."))}${data.hasMore ? btn(t("Load more commits"),'more','class="load-more"') : ''}<div class="graph-foot">${tr('Commits: {0} · Topological order', data.commits.length)}${data.hasMore ? '' : t(" · End of results")}</div></div></section>${divider('detail')}<aside id="detail-pane" class="detail-pane" aria-label="${tr("Commit details")}">${detailPane()}</aside></div>`;
   }
-  function workingFiles(files, staged, label) {
-    return `<section class="working-group"><h3>${label} <span class="count">${files.length}</span></h3>${files.map(f => `<div class="working-file"><button class="file-diff" data-action="workingDiff" data-file="${e(f.path)}" data-staged="${staged}"><span class="file-status status-${f.conflict ? 'U' : e(staged ? f.index : f.working)}">${f.conflict ? '!' : e(staged ? f.index : f.working)}</span><span>${e(f.path)}</span></button>${btn(staged ? t("Unstage") : t("Stage"),staged ? 'unstage' : 'stage',`data-file="${e(f.path)}"`)}</div>`).join('') || `<p class="muted">${tr("No files")}</p>`}</section>`;
+  function workingFile(file, staged, tree = false) {
+    const name = tree ? file.path.slice(file.path.lastIndexOf('/')+1) : file.path;
+    const title = file.oldPath ? `${file.oldPath} → ${file.path}` : file.path;
+    return `<div class="working-file"><button class="file-diff" data-action="workingDiff" data-file="${e(file.path)}" data-staged="${staged}" title="${e(title)}" aria-label="${tr('View changes: {0}',title)}"><span class="file-status status-${file.conflict?'U':e(staged?file.index:file.working)}">${file.conflict?'!':e(staged?file.index:file.working)}</span><span>${e(name)}</span>${file.oldPath?`<small class="rename-marker" aria-hidden="true">${icon('undo')}</small>`:''}</button>${btn(staged?t("Unstage"):t("Stage"),staged?'unstage':'stage',`data-file="${e(file.path)}" aria-label="${staged?tr('Unstage {0}',file.path):tr('Stage {0}',file.path)}"`)}</div>`;
+  }
+  function directoryOpen(key) {
+    return !Object.hasOwn(state.changeDirectories || {},key) || state.changeDirectories[key] !== false;
+  }
+  function workingFiles(files, staged, label, group) {
+    const treeMode = state.changesMode !== 'list';
+    function directory(node) {
+      return [...node.directories.values()].map(child=>{
+        const key=group+':'+child.path;
+        return `<details class="working-directory" data-directory="${e(key)}" ${directoryOpen(key)?'open':''}><summary title="${e(child.path)}" aria-label="${tr('Directory {0}: {1} changed files',child.path,child.count)}">${icon('chevron')}${icon('folder')}<span class="directory-name">${e(child.name)}</span><span class="count">${child.count}</span></summary><div class="directory-children">${directory(child)}</div></details>`;
+      }).join('') + node.files.map(file=>workingFile(file,staged,true)).join('');
+    }
+    const contents = files.length ? (treeMode ? directory(GitrismWorkingTree.build(files)) : files.map(file=>workingFile(file,staged)).join('')) : `<p class="muted">${tr("No files")}</p>`;
+    return `<section class="working-group" data-group="${group}"><h3>${label} <span class="count">${files.length}</span></h3>${contents}</section>`;
+  }
+  function changeFilesToolbar(files) {
+    const tree = state.changesMode !== 'list', hasDirectories=files.some(file=>file.path.includes('/'));
+    return `<div class="change-files-toolbar"><div class="change-view-toggle" role="group" aria-label="${tr("Changed file layout")}">${btn(t("Directory tree"),'changesMode',`data-mode="tree" aria-pressed="${tree}"`)}${btn(t("Flat list"),'changesMode',`data-mode="list" aria-pressed="${!tree}"`)}</div>${tree?`<div class="directory-actions">${btn(t("Expand all"),'expandDirectories',hasDirectories?'':'disabled')}${btn(t("Collapse all"),'collapseDirectories',hasDirectories?'':'disabled')}</div>`:''}</div>`;
   }
   function changesView() {
     const files = data.status.files;
-    return `<div class="changes-layout"><section class="change-files">${files.some(f=>f.conflict) ? workingFiles(files.filter(f=>f.conflict),false,t("Conflicts · Edit and stage to resolve")) : ''}${workingFiles(files.filter(f=>!f.conflict && f.index !== ' ' && f.index !== '?'),true,t("Staged"))}${workingFiles(files.filter(f=>!f.conflict && (f.working !== ' ' || f.index === '?')),false,t("Working changes"))}</section><aside class="commit-compose"><span class="eyebrow">${tr("Current branch")}</span><h2 class="compose-branch">${icon('branch')} ${e(data.status.branch)}</h2><p class="muted">${tr("Only staged files are committed. Select a file to inspect its diff.")}</p><textarea id="draft" placeholder="${tr('Commit summary\n\nDescribe your changes…')}" aria-label="${tr("Commit message")}">${e(state.draft)}</textarea><div class="compose-actions">${btn(t("Stage all"),'stageAll')}${btn(t("Unstage all"),'unstageAll')}${btn(t("Commit staged files"),'commit',data.status.staged === 0 || data.status.conflicted ? 'disabled' : '',true)}</div><small class="muted">${tr("Ctrl / ⌘ + Enter to commit")}</small>${btn(t("Save to stash"),'stashPush')}</aside></div>`;
+    return `<div class="changes-layout"><section class="change-files" data-root="${e(data.root)}">${changeFilesToolbar(files)}${files.some(f=>f.conflict) ? workingFiles(files.filter(f=>f.conflict),false,t("Conflicts · Edit and stage to resolve"),'conflicts') : ''}${workingFiles(files.filter(f=>!f.conflict && f.index !== ' ' && f.index !== '?'),true,t("Staged"),'staged')}${workingFiles(files.filter(f=>!f.conflict && (f.working !== ' ' || f.index === '?')),false,t("Working changes"),'working')}</section><aside class="commit-compose"><span class="eyebrow">${tr("Current branch")}</span><h2 class="compose-branch">${icon('branch')} ${e(data.status.branch)}</h2><p class="muted">${tr("Only staged files are committed. Select a file to inspect its diff.")}</p><textarea id="draft" placeholder="${tr('Commit summary\n\nDescribe your changes…')}" aria-label="${tr("Commit message")}">${e(state.draft)}</textarea><div class="compose-actions">${btn(t("Stage all"),'stageAll')}${btn(t("Unstage all"),'unstageAll')}${btn(t("Commit staged files"),'commit',data.status.staged === 0 || data.status.conflicted ? 'disabled' : '',true)}</div><small class="muted">${tr("Ctrl / ⌘ + Enter to commit")}</small>${btn(t("Save to stash"),'stashPush')}</aside></div>`;
   }
   function branchesView() {
     return `<div class="section-heading"><div><h2>${tr("Branches")}</h2><p>${tr("Switch branches, explore history, compare, or integrate changes.")}</p></div>${btn(t("New branch"),'createBranch')}</div><div class="cards">${data.branches.map(b=>`<article class="card"><div class="card-title"><strong class="entity-title">${icon('branch')}${e(b.name)}</strong>${b.current ? `<span class="ref head">${tr("Current")}</span>` : ''}${b.isRemote ? `<span class="ref">${tr("Remote")}</span>` : ''}</div><p>${e(b.remote || (b.isRemote ? t("Remote tracking branch") : t("No upstream")))} <code>${short(b.hash)}</code></p><div class="card-actions">${!b.current && !b.isRemote ? btn(t("Switch"),'checkout',`data-branch="${e(b.name)}"`) : ''}${btn(t("History"),'focusRef',`data-ref="${e(b.name)}"`)}${btn(t("Compare with HEAD"),'compareRef',`data-ref="${e(b.name)}"`)}${!b.current ? btn(t("Merge into current"),'operation',`data-operation="merge" data-ref="${e(b.name)}"`) + btn(t("Rebase current onto this"),'operation',`data-operation="rebase" data-ref="${e(b.name)}"`) : ''}${!b.current && !b.isRemote ? btn(t("Delete"),'deleteBranch',`data-branch="${e(b.name)}"`) : ''}</div></article>`).join('') || empty(t("No branches yet"))}</div>`;
@@ -174,9 +194,15 @@
     return `<div class="section-heading"><div><h2>${tr("Organize commit history")}</h2><p>${tr("Keep the base and reorder subsequent linear commits through HEAD.")}</p></div></div><div class="timeline-form"><input id="rebase-base" value="${e(state.rebaseBase)}" placeholder="${tr("Base, such as HEAD~3 or a commit hash")}" aria-label="${tr("Rebase base")}">${btn(t("Create plan"),'rebasePlan','',true)}</div>${rebaseLoading ? empty(t("Creating plan…")) : rebasePlan ? `<div class="rebase-plan"><div class="comparison-summary"><strong class="entity-title">${icon('branch')}${e(rebasePlan.branch)}</strong><code>${short(rebasePlan.base)} → ${short(rebasePlan.head)}</code><span>${tr('Commits: {0} · Oldest first', rebasePlan.commits.length)}</span></div><p class="muted">${tr("Use the arrows to reorder. squash combines messages, fixup discards this message, and drop removes a commit. A backup branch is created before applying.")}</p><div class="rebase-steps">${rebasePlan.commits.map((c,i)=>`<div class="rebase-step ${c.action==='drop'?'dropped':''}"><span class="step-number">${i+1}</span><select data-rebase-index="${i}" aria-label="${tr('Action for commit {0}', i+1)}">${['pick','squash','fixup','drop'].map(a=>`<option value="${a}" ${c.action===a?'selected':''}>${a}</option>`).join('')}</select><code>${short(c.hash)}</code><span class="step-subject" title="${e(c.subject)}">${e(c.subject)}</span>${btn('↑','moveRebase',`data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="${tr("Move commit up")}"`)}${btn('↓','moveRebase',`data-index="${i}" data-direction="1" ${i===rebasePlan.commits.length-1?'disabled':''} aria-label="${tr("Move commit down")}"`)}</div>`).join('')}</div><div class="rebase-actions">${btn(t("Apply rebase plan"),'applyRebase',data.status.files.length || data.operation ? 'disabled' : '',true)}${btn(t("Reset order"),'rebasePlan',`data-ref="${e(rebasePlan.base)}"`)}<span class="muted">${data.status.files.length ? t("Commit or stash your working changes first.") : t("Only organize history that is suitable for rewriting.")}</span></div></div>` : empty(t("Create a rebase plan first"), t("You can also choose “Organize subsequent history” from commit details."))}`;
   }
   function render() {
+    const previousFiles=app.querySelector('.change-files');
+    if (data && previousFiles?.dataset.root===data.root) {
+      const changes=[...previousFiles.querySelectorAll('.working-directory')].filter(node=>directoryOpen(node.dataset.directory)!==node.open);
+      if(changes.length) {state.changeDirectories={...state.changeDirectories,...Object.fromEntries(changes.map(node=>[node.dataset.directory,node.open]))};persist();}
+    }
     if (paneResize.isDragging()) { renderPending = true; return; }
     const focused = document.activeElement?.id, start = document.activeElement?.selectionStart, end = document.activeElement?.selectionEnd;
     const scroll = document.getElementById('graph-scroll')?.scrollTop || 0;
+    const previousContent=app.querySelector('.content'), contentScroll=previousContent?.scrollTop || 0, contentClass=previousContent?.className;
     if (!data) { app.innerHTML = empty(loading ? t("Loading repository…") : t("Open a Git repository"), t("Gitrism uses local Git. No account or subscription required.")) + btn(t("Choose repository"),'chooseRepository') + btn(t("Reload"),'refresh'); return; }
     const tabs = [['graph','graph',t("Commit graph")],['changes','changes',t("Working changes")],['branches','branch',t("Branches")],['tags','tag',t("Tags")],['stashes','stash','Stashes'],['worktrees','worktree','Worktrees'],['compare','compare',t("Compare")],['timeline','timeline',t("File timeline")],['rebase','rebase',t("Organize history")]];
     const s = data.status;
@@ -187,6 +213,7 @@
     const activityNode=document.getElementById('personal-activity'); if(activityNode) activityObserver.observe(activityNode);
     app.setAttribute('aria-busy',String(loading || busy));
     if (busy) app.querySelectorAll('button[data-action]').forEach(b=>{ if (!['tab','copy','select','selectTimeline','diff','workingDiff'].includes(b.dataset.action)) b.disabled=true; });
+    const content=app.querySelector('.content');if(content?.className===contentClass)content.scrollTop=contentScroll;
     const scrollNode = document.getElementById('graph-scroll'); if (scrollNode) scrollNode.scrollTop=scroll;
     if (focused && document.getElementById(focused)) { const node=document.getElementById(focused); node.focus(); if (typeof start==='number' && node.setSelectionRange && node.type!=='search') node.setSelectionRange(start,end); }
   }
@@ -203,6 +230,13 @@
     state.tab='timeline'; state.timelineFile=file; timelineLoading=true; timelineRequest=++serial; persist(); render();
     send('timelineHistory',{file,request:timelineRequest});
   }
+  app.addEventListener('toggle',event=>{
+    const directory=event.target;
+    if (!directory.matches?.('.working-directory') || !directory.isConnected || !app.contains(directory)) return;
+    const key=directory.dataset.directory;
+    if (directoryOpen(key)===directory.open) return;
+    state.changeDirectories={...state.changeDirectories,[key]:directory.open}; persist();
+  },true);
   app.addEventListener('input',event=>{
     if (event.target.id==='draft') state.draft=event.target.value;
     if (event.target.id==='compare-from') state.compareFrom=event.target.value;
@@ -215,6 +249,12 @@
     if (event.target.closest('.advanced-search summary')) { state.advancedOpen=!event.target.closest('.advanced-search').open;persist(); }
     const button=event.target.closest('button[data-action]'); if (!button || button.disabled) return;
     const a=button.dataset.action, d=button.dataset, value=id=>document.getElementById(id)?.value || '';
+    if (a==='changesMode') { state.changesMode=d.mode==='list'?'list':'tree';persist();render();return; }
+    if (a==='expandDirectories' || a==='collapseDirectories') {
+      const open=a==='expandDirectories', directories=app.querySelectorAll('.working-directory');
+      state.changeDirectories={...state.changeDirectories,...Object.fromEntries([...directories].map(node=>[node.dataset.directory,open]))};
+      directories.forEach(node=>{node.open=open;});persist();return;
+    }
     if (a==='tab') { state.tab=d.tab; persist(); render(); if(d.tab==='timeline' && state.timelineFile && !timelineCommits.length && !timelineLoading)loadTimeline(state.timelineFile); return; }
     if (a==='select' || a==='selectTimeline') { select(d.hash,a==='selectTimeline'); return; }
     if (a==='search') { try { search(readSearch()); } catch { notice(t("Invalid search date"),true); } return; }
@@ -258,11 +298,11 @@
   window.addEventListener('message',event=>{
     const m=event.data;
     if (m.type==='data') {
-      if (m.data && state.root && state.root!==m.data.root) { state.selected=''; state.draft=''; state.searchDraft=undefined;activity=undefined;activityError=undefined;detail=undefined; comparison=undefined; }
+      if (m.data && state.root && state.root!==m.data.root) { state.selected=''; state.draft=''; state.searchDraft=undefined;state.changeDirectories={};activity=undefined;activityError=undefined;detail=undefined; comparison=undefined; }
       data=m.data; state.root=data?.root; loading=false; persist(); render();
-      if (state.selected && !detail && !detailLoading && data) select(state.selected,state.tab==='timeline');
+      if (state.selected && !detail && !detailLoading && data && ['graph','timeline'].includes(state.tab)) select(state.selected,state.tab==='timeline');
     }
-    if (m.type==='reset') { activity=undefined;activityError=undefined;data=undefined; detail=undefined; comparison=undefined; timelineCommits=[];rebasePlan=undefined;rebaseLoading=false; state={tab:'graph',draft:'',selected:'',compareFrom:'HEAD',compareTo:'',layout:state.layout}; detailRequest=++serial; compareRequest=++serial; timelineRequest=++serial;rebaseRequest=++serial; detailLoading=false; comparisonLoading=false; timelineLoading=false; persist(); render(); }
+    if (m.type==='reset') { activity=undefined;activityError=undefined;data=undefined; detail=undefined; comparison=undefined; timelineCommits=[];rebasePlan=undefined;rebaseLoading=false; state={tab:'graph',draft:'',selected:'',compareFrom:'HEAD',compareTo:'',layout:state.layout,changesMode:state.changesMode}; detailRequest=++serial; compareRequest=++serial; timelineRequest=++serial;rebaseRequest=++serial; detailLoading=false; comparisonLoading=false; timelineLoading=false; persist(); render(); }
     if (m.type==='activity' && m.root===data?.root) { activity=m.activity;activityError=m.error;updateActivity();const mine=document.getElementById('only-mine');if(mine)mine.disabled=!activity?.email; }
     if (m.type==='loading') { loading=m.value; app.setAttribute('aria-busy',String(loading || busy)); const label=document.getElementById('loading-label'); if(label)label.textContent=loading ? t("Loading…") : t("Local repository"); }
     if (m.type==='busy') { busy=m.value; render(); }

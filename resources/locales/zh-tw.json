@@ -305,5 +305,14 @@
   "{0} pixels": "{0} 像素",
   "Resize navigation": "調整導覽列寬度",
   "Resize history and details": "調整歷史與詳細資料面板大小",
-  "Drag to resize. Use arrow keys; double-click or press Enter to reset.": "拖曳調整大小，也可使用方向鍵；按兩下或按 Enter 還原預設。"
+  "Drag to resize. Use arrow keys; double-click or press Enter to reset.": "拖曳調整大小，也可使用方向鍵；按兩下或按 Enter 還原預設。",
+  "View changes: {0}": "檢視變更：{0}",
+  "Stage {0}": "暫存 {0}",
+  "Unstage {0}": "取消暫存 {0}",
+  "Directory {0}: {1} changed files": "目錄 {0}：{1} 個變更檔案",
+  "Changed file layout": "變更檔案配置",
+  "Directory tree": "目錄樹",
+  "Flat list": "平鋪清單",
+  "Expand all": "全部展開",
+  "Collapse all": "全部收合"
 }

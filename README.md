@@ -19,7 +19,7 @@ No account, subscription, telemetry, cloud backend, external avatars, or AI serv
 - Commit graph with parent topology, branches, merges, tags, and incremental loading.
 - Advanced search by message, author, hash, reference, file, date, merge mode, first parent, or personal email.
 - Commit details, rename-aware file lists, native VS Code diffs, comparisons, file timelines, blame, and line history.
-- Working changes with staged, unstaged, untracked, conflicted, and stash workflows.
+- Working changes with directory tree or flat list views, collapsible folders, and staged, unstaged, untracked, conflict, and stash workflows.
 - Branches, tags, worktrees, fetch, pull, push, sync, cherry-pick, revert, merge, and rebase controls.
 - Interactive history cleanup with reorder, squash, fixup, drop, backup branches, and conflict recovery.
 - Editor CodeLens for function/class attribution, retained-line commit links, author breakdowns, and file history.
@@ -31,10 +31,10 @@ Gitrism uses local Git data. Personal activity excludes collaborators, merge com
 
 ## Install
 
-Download [`gitrism-0.4.1.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.4.1), then choose **Extensions: Install from VSIX...** in VS Code, or run:
+Download [`gitrism-0.4.2.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.4.2), then choose **Extensions: Install from VSIX...** in VS Code, or run:
 
 ```bash
-code --install-extension gitrism-0.4.1.vsix --force
+code --install-extension gitrism-0.4.2.vsix --force
 ```
 
 For Remote SSH, install Gitrism on the remote Extension Host and reload the window.

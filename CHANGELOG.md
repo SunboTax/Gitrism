@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.2
+
+- Show changed files in a directory tree by default, with a flat list switch and expand/collapse-all controls.
+- Keep staged, working, and conflict groups separate; show descendant file counts, full-path tooltips, rename hints, and original diff/stage targets.
+- Remember directory expansion independently per status group across refreshes and webview recreation; reset expansion when changing repository and keep the chosen layout mode.
+- Preserve the working view's scroll position during refreshes and keep the layout toolbar reachable in long lists.
+- Fix webview recreation switching away from Working changes when a commit was previously selected.
+- Localize new controls in English, Simplified Chinese, and Traditional Chinese, and verify nested paths, unusual names, keyboard toggling, and narrow layouts.
+
 ## 0.4.1
 
 - Add draggable dividers for the navigation sidebar and history/detail panes, including the file timeline.

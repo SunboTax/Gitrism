@@ -442,3 +442,25 @@ body.vscode-light, body.vscode-high-contrast-light { --prism-purple: #7650b5; }
 .advanced-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
 .advanced-actions button { font-size: 11px; }
 @media (max-height: 480px) { .advanced-panel { position: fixed; top: auto; bottom: 28px; right: 18px; width: min(360px, calc(100vw - 24px)); max-height: calc(100vh - 140px); padding: 12px; } .activity-stats { margin-block: 14px; } .activity-note { margin-top: 16px; } .advanced-search>summary { padding-block: 4px; height: 30px; } }
+
+/* Group changed files by their actual repository paths. */
+.change-files-toolbar { position: sticky; top: 0; z-index: 2; background: var(--bg); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-block: 10px 16px; border-bottom: 1px solid var(--border); }
+.change-view-toggle { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px; border: 1px solid var(--border); border-radius: 7px; }
+.change-view-toggle button { font-size: 11px; padding: 5px 8px; }
+.change-view-toggle [aria-pressed=true] { color: var(--accent); background: var(--tint); }
+.directory-actions { display: flex; flex-wrap: wrap; gap: 2px; }
+.directory-actions button { font-size: 10px; color: var(--muted); padding: 5px 7px; }
+.working-directory { margin: 0; border: 0; padding: 0; min-width: 0; }
+.working-directory>summary { display: flex; align-items: center; gap: 6px; padding: 9px 7px; border-radius: 5px; list-style: none; color: var(--fg); font-size: 12px; }
+.working-directory>summary::-webkit-details-marker { display: none; }
+.working-directory>summary:hover { background: var(--hover); }
+.working-directory>summary>.icon:first-child { transform: rotate(-90deg); color: var(--muted); width: 12px; height: 12px; }
+.working-directory[open]>summary>.icon:first-child { transform: rotate(0); }
+.working-directory>summary>.icon:nth-child(2) { color: var(--accent); }
+.directory-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.working-directory>summary>.count { margin-left: auto; flex: none; }
+.directory-children { padding-left: 12px; margin-left: 12px; border-left: 1px solid var(--soft-border); min-width: 0; }
+.working-file>.file-diff { min-width: 0; }
+.rename-marker { display: flex; color: var(--muted); flex: none; }
+.rename-marker>.icon { width: 12px; height: 12px; }
+@media (max-width: 640px) { .directory-children { padding-left: 6px; margin-left: 6px; } .working-file>.file-diff { padding-inline: 4px; gap: 5px; } }

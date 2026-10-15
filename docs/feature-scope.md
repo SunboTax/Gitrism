@@ -2,7 +2,7 @@
 
 Gitrism independently implements common local Git workflows. The initial design referenced the commands and workflow categories exposed by the locally installed GitLens 19.3.0 manifest. The Git service, topology layout, interface, and assets are independently implemented; Gitrism contains no GitLens code or assets and does not modify subscription checks.
 
-This document describes actual behavior in Gitrism 0.4.1. It does not claim complete parity with another product or subscription tier.
+This document describes actual behavior in Gitrism 0.4.2. It does not claim complete parity with another product or subscription tier.
 
 | Workflow | Current support | Limits |
 | --- | --- | --- |
@@ -12,7 +12,7 @@ This document describes actual behavior in Gitrism 0.4.1. It does not claim comp
 | CodeLens | Language-provider function/class ranges, retained-line commit links, email-based author breakdowns, and file history | Current retained lines only; skips unsaved or untracked files; default limits of 5,000 lines and 100 symbol locations |
 | Personal activity | Adaptive 13/26/52-week calendar, own-email counts, active days, and day filters | Reachable local non-merge commits by committer date; no collaborator, issue, or pull request counts; one configured email |
 | Commit inspection | Messages, parents, authors, files, renames, statistics, and native diffs | Merge changes are relative to the first parent |
-| Working changes | Staged, unstaged, untracked, and conflict groups; individual or bulk staging; commits | Commits include staged content only |
+| Working changes | Directory tree or flat list; per-directory and bulk expand/collapse; staged, unstaged, untracked, and conflict groups; individual or bulk staging; commits | Commits include staged content only |
 | Reference comparison | Final file content, rename-aware diffs, and counts of unique commits | Lists at most 200 destination-only commits |
 | Branches and tags | Create, switch, safe branch deletion, remote branch browsing, and local tags | No force deletion or remote tag management |
 | Stashes | Save including untracked files, inspect, apply, pop, and delete | Ignored files are not included |
@@ -42,6 +42,6 @@ Gitrism has no cloud patch service or team collaboration backend. Personal workf
 - CodeLens tests covering language symbol nesting and fallback, identity grouping, file limits, cache invalidation, cancellation, and stale documents.
 - Personal activity tests covering own-email matching, collaborator exclusion, reference deduplication, detached HEAD, stash/notes exclusion, local calendar boundaries, and daylight saving transitions.
 - Controller tests covering stale repository reads, request validation, and mutation locks shared across panels.
-- Chrome tests covering the real DOM, CSP, escaping, graph details, file diff requests, draft persistence, navigation, independent timelines, rebase plan editing, light/dark themes, narrow views, real mouse resizing, keyboard size limits and resets, cancelled drags, layout persistence, and scroll preservation during concurrent updates.
+- Chrome tests covering the real DOM, CSP, escaping, graph details, file diff requests, draft persistence, navigation, independent timelines, rebase plan editing, light/dark themes, narrow views, real mouse resizing, keyboard size limits and resets, cancelled drags, layout persistence, and scroll preservation during concurrent updates, directory nesting, per-status expansion, layout persistence, keyboard toggling, and full-path file actions.
 
 The tests do not push or pull the user's working repository and do not constitute a full VS Code Extension Host acceptance suite. Credential behavior and host integration depend on the installation environment.

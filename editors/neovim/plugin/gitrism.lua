@@ -1,0 +1,2 @@
+-- Explicit setup registers commands without starting a process.
+-- Native commands run Git on demand; only :GitrismWeb starts a browser service.

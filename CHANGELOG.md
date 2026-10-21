@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0
+
+- Enable cursor-line attribution by default in VS Code and Neovim, showing author, date, short commit, and message. Query only the selected line, clear old annotations immediately on line changes, and discard stale responses. Current-line mode supports large files without applying the whole-file annotation limit.
+- Make function/class CodeLens opt-in through **Gitrism: Toggle Function Attribution**; keep Neovim function/selection authors available on demand.
+- Add a native Neovim 0.10+ commit graph using asynchronous Git directly, without Node.js or a browser: merge lanes, bounded incremental history, message filters, rename-aware file history, and on-demand commit summaries/patches.
+- Provide native line blame, optional inline attribution, LSP/selection/file author ranges, and line history. Cancel stale graph/detail queries, restore source window settings, and adapt detail splits to terminal width.
+- Keep the shared Git workspace optional through `:GitrismWeb`, served on loopback with per-process tokens, strict origin checks, native browser prompts, text content previews, and browser-to-Neovim file/worktree opening.
+- Extract editor-independent workspace sessions and attribution helpers while preserving the VS Code adapter and native diffs.
+- Coordinate Gitrism mutations across hosts and linked worktrees through a common Git-directory lock; stop editor-owned servers on channel closure.
+- Document native Neovim setup and real terminal previews, optional browser/SSH usage, and limitations.
+
 ## 0.4.2
 
 - Show changed files in a directory tree by default, with a flat list switch and expand/collapse-all controls.

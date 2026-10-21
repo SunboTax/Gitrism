@@ -1,13 +1,14 @@
 import { t, setLanguage, getLocale } from "./localization";
 import * as vscode from "vscode";
 import * as path from "node:path";
-import { BlameLine, GitError, GitService } from "./gitService";
+import { GitError, GitService } from "./gitService";
 import { GitrismTreeProvider } from "./treeProvider";
 import { CommitGraphPanel } from "./commitGraphPanel";
 import { GitrismPanelView } from "./gitrismPanelView";
 import { RevisionProvider } from "./revisionProvider";
 import { executeGitMutation } from "./workspaceController";
 import { GitrismCodeLensProvider, CodeAuthor } from "./codeLensProvider";
+import { InlineBlameCache } from "./inlineBlame";
 import { migrateLegacySettings } from "./settingsMigration";
 
 let git: GitService | undefined;
@@ -25,7 +26,8 @@ let blameTimer: ReturnType<typeof setTimeout> | undefined;
 let blameRequest = 0;
 let repositoryRequest = 0;
 let codeLens: GitrismCodeLensProvider | undefined;
-let blameCache: { key: string; lines: BlameLine[] } | undefined;
+const blameCache = new InlineBlameCache();
+let blameTarget: { editor: vscode.TextEditor; line: number; version: number } | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   setLanguage(vscode.env.language);
@@ -79,6 +81,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   register("gitrism.toggleBlame", async () => {
     if (await ensureWorkspace(context)) await toggleBlame();
   });
+  register("gitrism.toggleCodeLens", async () => {
+    const config = vscode.workspace.getConfiguration("gitrism.codeLens");
+    await config.update("enabled", !config.get("enabled", false), vscode.ConfigurationTarget.Workspace);
+  });
   register("gitrism.showCommit", async (hash?: string, root?: string) => {
     if (await ensureWorkspace(context)) {
       const repository = root ? repositories.find(repo => repo.cwd === root) : undefined;
@@ -121,20 +127,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.onDidChangeActiveTextEditor(() => {
       scheduleBlame();
     }),
-    vscode.workspace.onDidSaveTextDocument(() => codeLens?.invalidate()),
+    vscode.workspace.onDidSaveTextDocument(() => { codeLens?.invalidate(); blameCache.clear(); scheduleBlame(); }),
     vscode.workspace.onDidChangeTextDocument((event) => {
       codeLens?.invalidate();
+      blameCache.clear();
       if (inlineBlameEnabled && vscode.window.activeTextEditor?.document === event.document) {
         scheduleBlame();
       }
     }),
-    vscode.window.onDidChangeTextEditorSelection(() => {
+    vscode.window.onDidChangeTextEditorSelection(event => {
+      if (event.textEditor !== vscode.window.activeTextEditor) return;
+      const target = blameTarget;
+      if (target?.editor === event.textEditor && target.line === event.textEditor.selection.active.line && target.version === event.textEditor.document.version) return;
       scheduleBlame();
     }),
     vscode.workspace.onDidChangeConfiguration(event => {
       if (event.affectsConfiguration("gitrism.codeLens")) codeLens?.invalidate();
       if (event.affectsConfiguration("gitrism.inlineBlame")) {
-        inlineBlameEnabled = vscode.workspace.getConfiguration("gitrism.inlineBlame").get("enabled", false);
+        blameCache.clear();
+        inlineBlameEnabled = vscode.workspace.getConfiguration("gitrism.inlineBlame").get("enabled", true);
         vscode.window.visibleTextEditors.forEach(editor => editor.setDecorations(blameDecoration!, []));
         scheduleBlame();
       }
@@ -148,7 +159,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   };
   context.subscriptions.push(watcher, watcher.onDidChange(scheduleRefresh), watcher.onDidCreate(scheduleRefresh), watcher.onDidDelete(scheduleRefresh));
 
-  inlineBlameEnabled = vscode.workspace.getConfiguration("gitrism.inlineBlame").get("enabled", false);
+  inlineBlameEnabled = vscode.workspace.getConfiguration("gitrism.inlineBlame").get("enabled", true);
   await initializeWorkspace(context);
   if (inlineBlameEnabled) void updateInlineBlame();
 }
@@ -167,7 +178,7 @@ async function discoverRepositories(): Promise<void> {
 
 async function selectRepository(repo: GitService, context: vscode.ExtensionContext): Promise<GitrismTreeProvider> {
   treeRegistration?.dispose();
-  git = repo; activeFolderPath = repo.cwd; blameCache = undefined;
+  git = repo; activeFolderPath = repo.cwd; blameCache.clear();
   await context.workspaceState.update("gitrism.repository", repo.cwd);
   panelView?.setGit(git); CommitGraphPanel.setGit(git);
   currentTree = new GitrismTreeProvider(git, reportError);
@@ -200,7 +211,7 @@ async function initializeWorkspace(context: vscode.ExtensionContext, force = fal
 }
 
 async function refreshWorkspace(): Promise<void> {
-  blameCache = undefined;
+  blameCache.clear();
   codeLens?.invalidate();
   await Promise.all([currentTree?.refresh(), panelView?.controller.refresh(), CommitGraphPanel.refresh()]);
   scheduleBlame();
@@ -208,6 +219,9 @@ async function refreshWorkspace(): Promise<void> {
 
 function scheduleBlame(): void {
   clearTimeout(blameTimer);
+  blameRequest++; // Invalidate in-flight reads as soon as the cursor/document changes.
+  blameTarget = undefined;
+  if (blameDecoration) vscode.window.visibleTextEditors.forEach(editor => editor.setDecorations(blameDecoration!, []));
   if (inlineBlameEnabled) blameTimer = setTimeout(() => { void updateInlineBlame(); }, 180);
 }
 
@@ -351,25 +365,25 @@ async function updateInlineBlame(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (!editor || editor.document.uri.scheme !== "file") return;
   const request = ++blameRequest;
+  const line = editor.selection.active.line;
+  const version = editor.document.version;
+  blameTarget = { editor, line, version };
   if (editor.document.isDirty) { editor.setDecorations(blameDecoration, []); return; }
   const repository = repositories.filter(repo => editor.document.uri.fsPath.startsWith(repo.cwd + path.sep)).sort((a,b) => b.cwd.length - a.cwd.length)[0];
   if (!repository) { editor.setDecorations(blameDecoration, []); return; }
   const maxLines = vscode.workspace.getConfiguration("gitrism.inlineBlame").get("maxLines", 1000);
-  if (editor.document.lineCount > maxLines) {
+  const allLines = vscode.workspace.getConfiguration("gitrism.inlineBlame").get<string>("mode", "currentLine") === "allLines";
+  if (allLines && editor.document.lineCount > maxLines) {
     editor.setDecorations(blameDecoration, []);
     return;
   }
   try {
     const relative = path.relative(repository.cwd, editor.document.uri.fsPath);
-    const version = editor.document.version;
-    const key = repository.cwd + ":" + relative + ":" + version;
-    const lines = blameCache?.key === key ? blameCache.lines : await repository.blame(relative);
-    if (request !== blameRequest || editor.document.version !== version || editor.document.isDirty || !inlineBlameEnabled) return;
-    blameCache = { key, lines };
-    const allLines = vscode.workspace.getConfiguration("gitrism.inlineBlame").get<string>("mode", "currentLine") === "allLines";
+    const lines = await blameCache.query(repository, relative, version, line, allLines);
+    if (request !== blameRequest || vscode.window.activeTextEditor !== editor || editor.document.isClosed || editor.document.version !== version || editor.document.isDirty || editor.selection.active.line !== line || !inlineBlameEnabled) return;
     const decorations: vscode.DecorationOptions[] = [];
-    lines.slice(0, editor.document.lineCount).forEach((item, index) => {
-      if (!allLines && index !== editor.selection.active.line) return;
+    lines.forEach(({ entry: item, line: index }) => {
+      if (index >= editor.document.lineCount) return;
       const uncommitted = /^0+$/.test(item.hash);
       const hover = new vscode.MarkdownString();
       hover.appendText(`${item.author} · ${formatDate(item.date)}\n\n${item.summary}`);
@@ -379,7 +393,7 @@ async function updateInlineBlame(): Promise<void> {
         hover.isTrusted = { enabledCommands: ["gitrism.showCommit"] };
       }
       decorations.push({ range: new vscode.Range(index, 0, index, 0), hoverMessage: hover,
-        renderOptions: { after: { contentText: uncommitted ? t(" Uncommitted") : ` ${item.author} · ${item.hash.replace(/^\^/, "").slice(0,8)} · ${item.summary}` } } });
+        renderOptions: { after: { contentText: uncommitted ? t(" Uncommitted") : ` ${item.author} · ${formatDate(item.date)} · ${item.hash.replace(/^\^/, "").slice(0,8)} · ${item.summary}` } } });
     });
     editor.setDecorations(blameDecoration, decorations);
   } catch {
@@ -404,7 +418,7 @@ function reportError(error: unknown): void {
 }
 
 export function deactivate(): void {
-  clearTimeout(refreshTimer); clearTimeout(blameTimer); blameRequest++;
+  clearTimeout(refreshTimer); clearTimeout(blameTimer); blameRequest++; blameCache.clear();
   treeRegistration?.dispose();
   blameDecoration?.dispose();
 }

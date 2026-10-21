@@ -1,0 +1,23 @@
+:root { color-scheme: dark; --vscode-font-family: system-ui, sans-serif; --vscode-font-size: 13px; --vscode-button-background: #7258b1; --vscode-button-foreground: #fff; }
+:root[data-theme=light] { color-scheme: light; --vscode-editor-background: #faf9fc; --vscode-foreground: #292631; --vscode-sideBar-background: #f0edf6; --vscode-descriptionForeground: #696477; --vscode-panel-border: #d8d2e2; --vscode-input-background: #fff; --vscode-input-foreground: #292631; --vscode-charts-purple: #7253ad; --vscode-charts-blue: #25689b; }
+@media (prefers-color-scheme: light) {
+  :root[data-theme=auto] { color-scheme: light; --vscode-editor-background: #faf9fc; --vscode-foreground: #292631; --vscode-sideBar-background: #f0edf6; --vscode-descriptionForeground: #696477; --vscode-panel-border: #d8d2e2; --vscode-input-background: #fff; --vscode-input-foreground: #292631; --vscode-charts-purple: #7253ad; --vscode-charts-blue: #25689b; }
+}
+dialog { background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 20px 90px #0008; }
+dialog::backdrop { background: #0008; }
+.browser-dialog { width: min(520px, 90vw); padding: 24px; }
+.browser-dialog h2 { font-size: 18px; }
+.browser-dialog p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.browser-dialog input, .browser-dialog select { box-sizing: border-box; width: 100%; }
+.browser-dialog-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px; }
+.browser-diff { box-sizing: border-box; width: 96vw; max-width: none; height: 90vh; max-height: none; padding: 0; }
+.browser-diff-header { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border); }
+.browser-diff-header > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.browser-diff-header small { display: block; color: var(--muted); margin-top: 5px; }
+.browser-diff-panes { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); height: calc(100% - 84px); }
+.browser-diff-panes section { min-width: 0; overflow: auto; border-right: 1px solid var(--border); }
+.browser-diff-panes h3 { padding: 12px; margin: 0; font: 13px monospace; border-bottom: 1px solid var(--border); }
+.browser-diff-panes ol { font: 13px/1.7 monospace; margin: 12px 0; padding-left: 68px; }
+.browser-diff-panes li { padding-right: 18px; white-space: pre; min-height: 1.7em; }
+.browser-diff-panes li::marker { color: var(--muted); }
+@media (max-width: 640px) { .browser-diff-panes { grid-template-columns: minmax(0,1fr); } .browser-diff-header { flex-wrap: wrap; } }

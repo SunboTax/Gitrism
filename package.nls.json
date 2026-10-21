@@ -16,9 +16,10 @@
   "setting.inlineBlame.mode": "Annotate the current line by default; allLines annotates the whole file.",
   "setting.inlineBlame.mode.currentLine": "Annotate only the current line.",
   "setting.inlineBlame.mode.allLines": "Annotate all lines in the file.",
-  "setting.inlineBlame.maxLines": "Maximum number of lines to decorate when inline blame is enabled.",
+  "setting.inlineBlame.maxLines": "Maximum file length for allLines annotations. Current-line blame queries only the selected line and has no file-length limit.",
   "setting.sshProxy": "SOCKS5 proxy for SSH GitHub connections, such as 127.0.0.1:7890. Leave empty to use the system SSH configuration.",
-  "setting.codeLens.enabled": "Show code attribution and history links above functions and classes. Uses current retained lines; unsaved documents are skipped.",
+  "setting.codeLens.enabled": "Show optional code attribution and history links above functions and classes. Disabled by default; current-line inline blame is enabled by default.",
   "setting.codeLens.maxLines": "Maximum file length for CodeLens attribution.",
-  "setting.codeLens.maxSymbols": "Maximum number of function and class locations annotated in each file."
+  "setting.codeLens.maxSymbols": "Maximum number of function and class locations annotated in each file.",
+  "command.toggleCodeLens": "Gitrism: Toggle Function Attribution"
 }

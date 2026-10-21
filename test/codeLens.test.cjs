@@ -18,7 +18,7 @@ test('authors group by email, exclude uncommitted lines, and use most recent ret
   assert.equal(result.authors.length,2);assert.equal(result.authors[0].lines,2);assert.equal(result.latest.hash,'c'.repeat(40));assert.equal(result.uncommitted,1);
 });
 test('CodeLens uses nested language symbols, longest repository root, cache and URI-aware links',async()=>{
-  settings={};symbols=[symbol(vscode.SymbolKind.Class,1,8,[symbol(vscode.SymbolKind.Method,3,5)])];
+  settings={enabled:true};symbols=[symbol(vscode.SymbolKind.Class,1,8,[symbol(vscode.SymbolKind.Method,3,5)])];
   let reads=0;const repo={cwd:'/repo/nested',blame:async()=>{reads++;return Array.from({length:10},(_,i)=>line(i===4?'b@example':'a@example',i===4?'b':'a',i===4?2:1));}};
   const provider=new GitrismCodeLensProvider(()=>[{cwd:'/repo',blame:async()=>{throw new Error('wrong repo');}},repo]),doc=document();
   let lenses=await provider.provideCodeLenses(doc,token);
@@ -29,17 +29,24 @@ test('CodeLens uses nested language symbols, longest repository root, cache and 
   provider.invalidate();await provider.provideCodeLenses(doc,token);assert.equal(reads,2);provider.dispose();
 });
 test('CodeLens falls back to file attribution, supports flat symbols, and skips dirty/disabled/oversized/cancelled files',async()=>{
-  settings={};symbols=[];const provider=new GitrismCodeLensProvider(()=>[{cwd:'/repo',blame:async()=>[line('a@example')]}]),doc=document();
+  settings={enabled:true};symbols=[];const provider=new GitrismCodeLensProvider(()=>[{cwd:'/repo',blame:async()=>[line('a@example')]}]),doc=document();
   let lenses=await provider.provideCodeLenses(doc,token);assert.equal(lenses.length,3);assert.equal(lenses[0].range.start.line,0);
   symbols=[{kind:vscode.SymbolKind.Function,location:{uri:doc.uri,range:new Range(0,0,1,1)}}];
   assert.equal((await provider.provideCodeLenses(doc,token)).length,3);
   doc.isDirty=true;assert.deepEqual(await provider.provideCodeLenses(doc,token),[]);doc.isDirty=false;
   settings={enabled:false};assert.deepEqual(await provider.provideCodeLenses(doc,token),[]);
-  settings={maxLines:5};assert.deepEqual(await provider.provideCodeLenses(doc,token),[]);
-  settings={};assert.deepEqual(await provider.provideCodeLenses(doc,{isCancellationRequested:true}),[]);provider.dispose();
+  settings={enabled:true,maxLines:5};assert.deepEqual(await provider.provideCodeLenses(doc,token),[]);
+  settings={enabled:true};assert.deepEqual(await provider.provideCodeLenses(doc,{isCancellationRequested:true}),[]);provider.dispose();
 });
 test('CodeLens discards blame after document changes or invalidation during a pending request',async()=>{
-  settings={};symbols=[];let resolve;const provider=new GitrismCodeLensProvider(()=>[{cwd:'/repo',blame:()=>new Promise(r=>resolve=r)}]),doc=document();
+  settings={enabled:true};symbols=[];let resolve;const provider=new GitrismCodeLensProvider(()=>[{cwd:'/repo',blame:()=>new Promise(r=>resolve=r)}]),doc=document();
   let pending=provider.provideCodeLenses(doc,token);await new Promise(r=>setImmediate(r));doc.version++;resolve([line('a@example')]);assert.deepEqual(await pending,[]);
   pending=provider.provideCodeLenses(doc,token);await new Promise(r=>setImmediate(r));provider.invalidate();resolve([line('a@example')]);assert.deepEqual(await pending,[]);provider.dispose();
+});
+
+test('function CodeLens is opt-in and performs no reads by default',async()=>{
+  settings={};let reads=0;
+  const provider=new GitrismCodeLensProvider(()=>[{cwd:'/repo',blame:async()=>{reads++;return [];}}]);
+  assert.deepEqual(await provider.provideCodeLenses(document(),token),[]);
+  assert.equal(reads,0);provider.dispose();
 });

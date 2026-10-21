@@ -2,7 +2,7 @@
 
 **See changes. Know history.**
 
-A private, local-first Git workspace for Visual Studio Code. Gitrism helps you inspect history, review changes, manage branches and worktrees, and keep everyday Git work in one place.
+A private, local-first Git workspace for Visual Studio Code and Neovim. Gitrism helps you inspect history, review changes, manage branches and worktrees, and keep everyday Git work in one place.
 
 No account, subscription, telemetry, cloud backend, external avatars, or AI service is required.
 
@@ -22,7 +22,7 @@ No account, subscription, telemetry, cloud backend, external avatars, or AI serv
 - Working changes with directory tree or flat list views, collapsible folders, and staged, unstaged, untracked, conflict, and stash workflows.
 - Branches, tags, worktrees, fetch, pull, push, sync, cherry-pick, revert, merge, and rebase controls.
 - Interactive history cleanup with reorder, squash, fixup, drop, backup branches, and conflict recovery.
-- Editor CodeLens for function/class attribution, retained-line commit links, author breakdowns, and file history.
+- Current-line attribution with author, date, commit, and message; optional function/class CodeLens and author breakdowns.
 - Personal activity calendar based only on the current repository's configured `user.email`.
 - Draggable navigation and history/detail panes with keyboard controls and saved layout preferences.
 - English, Simplified Chinese, and Traditional Chinese UI; Git 2.25.1+ compatibility.
@@ -31,13 +31,15 @@ Gitrism uses local Git data. Personal activity excludes collaborators, merge com
 
 ## Install
 
-Download [`gitrism-0.4.2.vsix`](https://github.com/SunboTax/Gitrism/releases/tag/v0.4.2), then choose **Extensions: Install from VSIX...** in VS Code, or run:
-
-```bash
-code --install-extension gitrism-0.4.2.vsix --force
-```
+Download a `.vsix` from [GitHub Releases](https://github.com/SunboTax/Gitrism/releases), then choose **Extensions: Install from VSIX...** in VS Code.
 
 For Remote SSH, install Gitrism on the remote Extension Host and reload the window.
+
+## Neovim
+
+A native Neovim 0.10+ commit graph keeps history, patches, blame, and author attribution in the terminal. It needs only Neovim and Git; the browser workspace is optional. See the [setup guide](docs/neovim.md).
+
+See the [0.5.0 release notes](docs/releases/v0.5.0.md) for changes and upgrade notes.
 
 ## Quick start
 
@@ -47,7 +49,7 @@ For Remote SSH, install Gitrism on the remote Extension Host and reload the wind
 4. Use **Working changes** to stage files and commit staged content.
 5. Drag the visible dividers to adjust navigation, history, details, or graph height. Double-click a divider to restore its default.
 
-CodeLens also requires VS Code's `editor.codeLens` setting. Configure CodeLens, inline blame, and the optional SSH proxy under `gitrism.*` settings.
+Current-line attribution is enabled by default. Use **Gitrism: Toggle Inline Blame** to hide it, or **Gitrism: Toggle Function Attribution** for optional function/class CodeLens (also requires `editor.codeLens`). Configure these and the optional SSH proxy under `gitrism.*` settings.
 
 ## Development
 
@@ -64,7 +66,7 @@ See [feature scope](docs/feature-scope.md) for detailed behavior and limits, [lo
 
 ## Privacy and independence
 
-Git operations run locally. Network access occurs only when you request fetch, pull, push, or sync, using your configured Git remotes and credentials.
+Git operations run locally. Git remote access occurs only when you request fetch, pull, push, or sync, using your configured Git remotes and credentials.
 
 Gitrism is independently implemented and contains no GitLens code or assets. It does not modify GitLens or bypass subscription checks. Gitrism is not affiliated with GitKraken or other Git extensions.
 

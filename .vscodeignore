@@ -7,3 +7,7 @@ test/**
 **/*.map
 *.vsix
 tsconfig.json
+output/**
+editors/**
+bin/**
+docs/roadmap.md

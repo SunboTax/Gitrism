@@ -2,7 +2,7 @@
   "name": "gitrism",
   "displayName": "Gitrism",
   "description": "%extension.description%",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "publisher": "sunbotax",
   "license": "MIT",
   "repository": {
@@ -13,7 +13,8 @@
     "url": "https://github.com/SunboTax/gitrism/issues"
   },
   "engines": {
-    "vscode": ">=1.85.0"
+    "vscode": ">=1.85.0",
+    "node": ">=22.0.0"
   },
   "extensionKind": [
     "workspace"
@@ -87,6 +88,10 @@
       {
         "command": "gitrism.showLineHistory",
         "title": "%command.showLineHistory%"
+      },
+      {
+        "command": "gitrism.toggleCodeLens",
+        "title": "%command.toggleCodeLens%"
       }
     ],
     "menus": {
@@ -159,7 +164,7 @@
       "properties": {
         "gitrism.inlineBlame.enabled": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "%setting.inlineBlame.enabled%"
         },
         "gitrism.inlineBlame.mode": {
@@ -188,7 +193,7 @@
         },
         "gitrism.codeLens.enabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "%setting.codeLens.enabled%"
         },
         "gitrism.codeLens.maxLines": {
@@ -228,5 +233,8 @@
     "blame",
     "worktree",
     "rebase"
-  ]
+  ],
+  "bin": {
+    "gitrism": "bin/gitrism.cjs"
+  }
 }

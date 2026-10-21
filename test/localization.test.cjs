@@ -38,7 +38,7 @@ test('every localized source message has complete Chinese catalogs and matching 
     assert.ok(value.length>0,locale+': '+key);
     assert.deepEqual(placeholders(value),placeholders(key),locale+': '+key);
   }
-  const files=['resources/workspace.js',...fs.readdirSync(path.join(__dirname,'../src')).filter(f=>f.endsWith('.ts')).map(f=>'src/'+f)];
+  const files=['resources/workspace.js','resources/browserHost.js',...fs.readdirSync(path.join(__dirname,'../src')).filter(f=>f.endsWith('.ts')).map(f=>'src/'+f)];
   for(const file of files) {
     const text=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
     assert.doesNotMatch(text,/\p{Script=Han}/u,'UI text should live in catalogs: '+file);

@@ -1,0 +1,13 @@
+node_modules/
+src/
+test/
+output/
+.vscode/
+.git/
+.github/
+docs/images/
+docs/roadmap.md
+**/*.map
+*.vsix
+*.tgz
+tsconfig.json

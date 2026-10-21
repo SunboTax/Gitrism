@@ -3,19 +3,8 @@ import * as path from "node:path";
 import { GitService, BlameLine } from "./gitService";
 import { t, getLocale } from "./localization";
 
-export interface CodeAuthor { name: string; email?: string; lines: number; commit: BlameLine }
-export function authorsForRange(lines: BlameLine[], start: number, end: number): { authors: CodeAuthor[]; latest?: BlameLine; uncommitted: number } {
-  const groups = new Map<string, CodeAuthor>(); let latest: BlameLine | undefined, uncommitted = 0;
-  for (const line of lines.slice(start, end+1)) {
-    if (/^0+$/.test(line.hash)) { uncommitted++; continue; }
-    const identity = line.email?.toLowerCase() || line.author;
-    const group = groups.get(identity);
-    if (!group) groups.set(identity, {name: line.author, email: line.email, lines: 1, commit: line});
-    else { group.lines++; if (line.date > group.commit.date) group.commit = line; }
-    if (!latest || line.date > latest.date) latest = line;
-  }
-  return { authors: [...groups.values()].sort((a,b)=>b.lines-a.lines), latest, uncommitted };
-}
+import { authorsForRange } from "./attribution";
+export { authorsForRange, CodeAuthor } from "./attribution";
 
 /** Attribution of retained lines, using language-provider symbol ranges and Git blame. */
 export class GitrismCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
@@ -28,7 +17,7 @@ export class GitrismCodeLensProvider implements vscode.CodeLensProvider, vscode.
   public dispose(): void { this.cache.clear(); this.emitter.dispose(); }
   public async provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.CodeLens[]> {
     const config = vscode.workspace.getConfiguration("gitrism.codeLens", document.uri);
-    if (!config.get("enabled", true) || document.uri.scheme !== "file" || document.isDirty || document.isClosed || token.isCancellationRequested || document.lineCount > config.get("maxLines", 5000)) return [];
+    if (!config.get("enabled", false) || document.uri.scheme !== "file" || document.isDirty || document.isClosed || token.isCancellationRequested || document.lineCount > config.get("maxLines", 5000)) return [];
     const repository = this.repositories().filter(repo => document.uri.fsPath.startsWith(repo.cwd + path.sep)).sort((a,b)=>b.cwd.length-a.cwd.length)[0];
     if (!repository) return [];
     const version = document.version, generation = this.generation;

@@ -314,5 +314,18 @@
   "Directory tree": "目录树",
   "Flat list": "平铺列表",
   "Expand all": "全部展开",
-  "Collapse all": "全部收起"
+  "Collapse all": "全部收起",
+  "Another Gitrism operation holds {0}. If all Gitrism processes have stopped, remove this lock directory.": "另一个 Gitrism 操作持有锁 {0}。确认所有 Gitrism 进程已停止后，可删除此锁目录。",
+  "This preview supports text files up to 2 MiB.": "此预览支持不超过 2 MiB 的文本文件。",
+  "This workspace is bound to {0}. Open another repository from your editor or CLI.": "此工作区绑定到 {0}。请从编辑器或命令行打开其他仓库。",
+  "Open this worktree with gitrism serve --repo {0}": "使用 gitrism serve --repo {0} 打开此工作树",
+  "Local workspace request failed. Reload to reconnect.": "本地工作区请求失败，请重新加载以连接。",
+  "Cancel": "取消",
+  "Close": "关闭",
+  "Side-by-side text preview": "并排文本预览",
+  "Open working file in Neovim": "在 Neovim 中打开工作区文件",
+  "Clipboard access was denied.": "剪贴板访问被拒绝。",
+  "Open the complete workspace URL from Neovim or the CLI.": "请使用 Neovim 或命令行提供的完整工作区地址。",
+  "Local workspace disconnected. Reload to reconnect.": "本地工作区已断开，请重新加载以连接。",
+  "Copied": "已复制"
 }

@@ -113,6 +113,7 @@ export class GitService {
   }
   public async hasHead(): Promise<boolean> { try { await this.resolveCommit("HEAD"); return true; } catch { return false; } }
   public async repositoryRoot(): Promise<string> { return (await this.run(["rev-parse", "--show-toplevel"])).trim(); }
+  public async commonDirectory(): Promise<string> { return path.resolve(this.cwd, (await this.run(["rev-parse", "--git-common-dir"])).trim()); }
   public async status(): Promise<RepositoryStatus> {
     const tokens = (await this.run(["status", "--porcelain=v1", "-b", "-z", "--untracked-files=all"])).split("\0");
     const header = tokens.shift() ?? "## HEAD";
@@ -359,6 +360,9 @@ export class GitService {
     return this.run(["log", "-n50", "--format=medium", "-L", start + "," + end + ":" + file]);
   }
   public async blame(file: string, startLine?: number, endLine?: number): Promise<BlameLine[]> {
+    if (startLine !== undefined || endLine !== undefined) {
+      if (!Number.isInteger(startLine) || !Number.isInteger(endLine) || startLine! < 1 || endLine! < startLine!) throw new GitError(t("Invalid line range"));
+    }
     this.filePath(file); const args = ["blame", "--line-porcelain"];
     if (startLine !== undefined && endLine !== undefined) args.push("-L", startLine + "," + endLine);
     args.push("--", file); const output = await this.run(args), result: BlameLine[] = []; let current: BlameLine | undefined;

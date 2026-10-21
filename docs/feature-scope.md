@@ -1,15 +1,15 @@
-# Feature scope and roadmap
+# Feature scope
 
 Gitrism independently implements common local Git workflows. The initial design referenced the commands and workflow categories exposed by the locally installed GitLens 19.3.0 manifest. The Git service, topology layout, interface, and assets are independently implemented; Gitrism contains no GitLens code or assets and does not modify subscription checks.
 
-This document describes actual behavior in Gitrism 0.4.2. It does not claim complete parity with another product or subscription tier.
+This document describes actual behavior in Gitrism 0.5.0. It does not claim complete parity with another product or subscription tier.
 
 | Workflow | Current support | Limits |
 | --- | --- | --- |
 | Adjustable panes | Sidebar width, history/detail proportions, narrow graph height, keyboard controls, and saved preferences | Navigation becomes horizontal in compact windows; preferences are stored separately per webview |
 | Commit graph | Parent topology, branch and merge lanes, references, and incremental loading | Up to 2,000 commits per graph query |
 | Search and history | Messages, multiple literal authors, personal email, hashes, branches, tags, paths, date ranges, merge modes, and first-parent traversal | Dates filter committer time in the client timezone; filtered parents may be absent |
-| CodeLens | Language-provider function/class ranges, retained-line commit links, email-based author breakdowns, and file history | Current retained lines only; skips unsaved or untracked files; default limits of 5,000 lines and 100 symbol locations |
+| CodeLens (optional, disabled by default) | Language-provider function/class ranges, retained-line commit links, email-based author breakdowns, and file history | Current retained lines only; skips unsaved or untracked files; default limits of 5,000 lines and 100 symbol locations |
 | Personal activity | Adaptive 13/26/52-week calendar, own-email counts, active days, and day filters | Reachable local non-merge commits by committer date; no collaborator, issue, or pull request counts; one configured email |
 | Commit inspection | Messages, parents, authors, files, renames, statistics, and native diffs | Merge changes are relative to the first parent |
 | Working changes | Directory tree or flat list; per-directory and bulk expand/collapse; staged, unstaged, untracked, and conflict groups; individual or bulk staging; commits | Commits include staged content only |
@@ -20,16 +20,13 @@ This document describes actual behavior in Gitrism 0.4.2. It does not claim comp
 | History operations | Cherry-pick, revert, merge, ordinary rebase, continue, and abort | No mainline-parent selection for merge commits |
 | Interactive rebase | Linear plan, reorder, pick, squash, fixup, drop, backups, and stale-plan checks | At most 100 commits; no reword or merge-preserving plan |
 | File timeline | Rename-following history, monthly commit counts, details, and diffs | At most 500 commits; chart measures commit counts, not changed lines |
-| Blame and line history | Current-line or whole-file annotations, hover details, commit links, and selected-line history | Annotations are cleared for unsaved documents |
+| Blame and line history | Current-line annotations enabled by default, with author/date/commit/message, hover details, commit links, and selected-line history; optional whole-file mode | Current-line mode queries only the cursor line; whole-file annotations have a configurable file-length limit; unsaved annotations are cleared |
 | Multiple repositories | Workspace roots and nested repositories discovered by built-in Git | No independent recursive filesystem scan |
 | Remote operations | Fetch and prune, fast-forward pull, push, and sync | Existing credentials; noninteractive operations; 60-second timeout |
 
-## Next priorities
+## Neovim
 
-1. Reword and merge-preserving history plans.
-2. History snapshots, changed-line trends, and range blame.
-3. Optional GitHub or GitLab pull request integration, and local patch import/export.
-4. Optional AI assistance through a user-configured provider, disabled by default and explicit about content sent externally.
+The [Neovim guide](neovim.md) covers the native terminal interface, optional browser workspace, and installation requirements.
 
 Gitrism has no cloud patch service or team collaboration backend. Personal workflows remain the primary focus.
 

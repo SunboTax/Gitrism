@@ -1,0 +1,8 @@
+{
+  "name": "gitrism-host-probe",
+  "publisher": "gitrism-test",
+  "version": "0.0.0",
+  "engines": { "vscode": ">=1.85.0" },
+  "extensionKind": ["workspace"],
+  "main": "./extension.cjs"
+}

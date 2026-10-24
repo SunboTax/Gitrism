@@ -2,7 +2,7 @@
 
 **See changes. Know history.**
 
-A private, local-first Git workspace for Visual Studio Code and Neovim. Gitrism helps you inspect history, review changes, manage branches and worktrees, and keep everyday Git work in one place.
+A private, local-first Git workspace for Visual Studio Code, Cursor, and Neovim. Gitrism helps you inspect history, review changes, manage branches and worktrees, and keep everyday Git work in one place.
 
 No account, subscription, telemetry, cloud backend, external avatars, or AI service is required.
 
@@ -31,15 +31,15 @@ Gitrism uses local Git data. Personal activity excludes collaborators, merge com
 
 ## Install
 
-Download a `.vsix` from [GitHub Releases](https://github.com/SunboTax/Gitrism/releases), then choose **Extensions: Install from VSIX...** in VS Code.
+Download a `.vsix` from [GitHub Releases](https://github.com/SunboTax/Gitrism/releases), then choose **Extensions: Install from VSIX...** in VS Code or Cursor. Both editors use the same package.
 
-For Remote SSH, install Gitrism on the remote Extension Host and reload the window.
+For Remote SSH, install Gitrism on the remote Extension Host and reload the window. See the [Cursor guide](docs/cursor.md) for local/SSH setup and verified compatibility.
 
 ## Neovim
 
 A native Neovim 0.10+ commit graph keeps history, patches, blame, and author attribution in the terminal. It needs only Neovim and Git; the browser workspace is optional. See the [setup guide](docs/neovim.md).
 
-See the [0.5.0 release notes](docs/releases/v0.5.0.md) for changes and upgrade notes.
+See the [0.6.0 release notes](docs/releases/v0.6.0.md) for changes and upgrade notes.
 
 ## Quick start
 

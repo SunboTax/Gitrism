@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- Verify the existing VSIX in official Cursor 3.26.16 on Linux x64, locally and over Remote SSH 1.1.16, with execution in the remote workspace extension host.
+- Check real merge graphs, webview keyboard navigation, bottom-panel activation, four theme variants, native revision diffs, current-line attribution, and optional function CodeLens.
+- Add an isolated packaged-extension host driver, screenshots and result reports, and Cursor local/SSH installation and troubleshooting documentation.
+
 ## 0.5.0
 
 - Enable cursor-line attribution by default in VS Code and Neovim, showing author, date, short commit, and message. Query only the selected line, clear old annotations immediately on line changes, and discard stale responses. Current-line mode supports large files without applying the whole-file annotation limit.

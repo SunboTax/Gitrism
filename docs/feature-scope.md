@@ -2,7 +2,7 @@
 
 Gitrism independently implements common local Git workflows. The initial design referenced the commands and workflow categories exposed by the locally installed GitLens 19.3.0 manifest. The Git service, topology layout, interface, and assets are independently implemented; Gitrism contains no GitLens code or assets and does not modify subscription checks.
 
-This document describes actual behavior in Gitrism 0.5.0. It does not claim complete parity with another product or subscription tier.
+This document describes actual behavior in Gitrism 0.6.0. It does not claim complete parity with another product or subscription tier.
 
 | Workflow | Current support | Limits |
 | --- | --- | --- |
@@ -30,6 +30,10 @@ The [Neovim guide](neovim.md) covers the native terminal interface, optional bro
 
 Gitrism has no cloud patch service or team collaboration backend. Personal workflows remain the primary focus.
 
+## Cursor
+
+The same VSIX runs in Cursor. See the [Cursor guide](cursor.md) for installation, the tested local/SSH environments, and compatibility limits.
+
 ## Validation
 
 - TypeScript compilation and checks.
@@ -41,4 +45,6 @@ Gitrism has no cloud patch service or team collaboration backend. Personal workf
 - Controller tests covering stale repository reads, request validation, and mutation locks shared across panels.
 - Chrome tests covering the real DOM, CSP, escaping, graph details, file diff requests, draft persistence, navigation, independent timelines, rebase plan editing, light/dark themes, narrow views, real mouse resizing, keyboard size limits and resets, cancelled drags, layout persistence, and scroll preservation during concurrent updates, directory nesting, per-status expansion, layout persistence, keyboard toggling, and full-path file actions.
 
-The tests do not push or pull the user's working repository and do not constitute a full VS Code Extension Host acceptance suite. Credential behavior and host integration depend on the installation environment.
+The separate `npm run test:cursor` acceptance suite uses the packaged extension in an actual Cursor host. It checks webviews, native diffs, commands, themes, keyboard navigation, CodeLens, and current-line annotations. Remote SSH acceptance also verifies execution in the remote workspace extension host.
+
+The tests do not push or pull the user's working repository. They do not cover every VS Code-compatible host; credential behavior and host integration depend on the installation environment.

@@ -10,6 +10,7 @@ import { executeGitMutation } from "./workspaceController";
 import { GitrismCodeLensProvider, CodeAuthor } from "./codeLensProvider";
 import { InlineBlameCache } from "./inlineBlame";
 import { migrateLegacySettings } from "./settingsMigration";
+import { NetworkProxy, defaultNetworkProxy } from "./networkProxy";
 
 let git: GitService | undefined;
 let output: vscode.OutputChannel | undefined;
@@ -150,6 +151,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         scheduleBlame();
       }
       if (event.affectsConfiguration("gitrism.sshProxy")) void initializeWorkspace(context, true);
+      if (event.affectsConfiguration("gitrism.proxy")) {
+        try {
+          const proxy = vscode.workspace.getConfiguration("gitrism").get<NetworkProxy>("proxy", defaultNetworkProxy);
+          for (const repository of repositories) repository.setNetworkProxy(proxy);
+          void refreshWorkspace();
+        } catch (error) { reportError(error); }
+      }
     })
   );
   const watcher = vscode.workspace.createFileSystemWatcher("**/*");
@@ -167,12 +175,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 async function discoverRepositories(): Promise<void> {
   const roots = new Set<string>();
   const proxy = vscode.workspace.getConfiguration("gitrism").get<string>("sshProxy", "");
+  const network = vscode.workspace.getConfiguration("gitrism").get<NetworkProxy>("proxy", defaultNetworkProxy);
   const gitExtension = vscode.extensions.getExtension<{ getAPI(version: number): { repositories: { rootUri: vscode.Uri }[] } }>("vscode.git");
   const gitApi = gitExtension ? await gitExtension.activate() : undefined;
   const candidates = [...(vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath) || []), ...(gitApi?.getAPI(1).repositories.map(repo => repo.rootUri.fsPath) || [])];
-  const results = await Promise.allSettled(candidates.map(async candidate => new GitService(candidate, proxy).repositoryRoot()));
+  const results = await Promise.allSettled(candidates.map(async candidate => new GitService(candidate, proxy, network).repositoryRoot()));
   for (const result of results) if (result.status === "fulfilled") roots.add(result.value);
-  repositories = [...roots].map(root => new GitService(root, proxy));
+  repositories = [...roots].map(root => new GitService(root, proxy, network));
   codeLens?.invalidate();
 }
 

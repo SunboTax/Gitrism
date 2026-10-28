@@ -2,6 +2,7 @@ import { t } from "./localization";
 import * as path from "node:path";
 import { GitError, GitService, GraphOptions, RebaseStep, PersonalActivity, validateGraphOptions } from "./gitService";
 import { withGitMutation } from "./mutationLock";
+import { NetworkProxy, normalizeNetworkProxy, defaultNetworkProxy } from "./networkProxy";
 
 export interface WorkspaceHost {
   postMessage(message: unknown): void;
@@ -16,6 +17,8 @@ export interface WorkspaceHost {
   openFile(file: string): Promise<void>;
   openWorktree(directory: string): Promise<void>;
   copy(value: string): Promise<void>;
+  networkInfo?(): { host: string; remote: boolean; scope: "workspace" | "session" };
+  saveNetworkProxy?(config: NetworkProxy): Promise<void>;
 }
 export type WorkspaceMessage = Record<string, unknown> & { type: string; request?: number };
 function text(message: WorkspaceMessage, key: string, fallback = ""): string {
@@ -53,6 +56,7 @@ export class WorkspaceSession {
       ]);
       if (generation !== this.generation || request !== this.refreshId) return;
       this.post({ type: "data", data: { root: git.cwd, name: path.basename(git.cwd), status, branches, commits: commits.slice(0, this.limit), tags, stashes, ...worktreeResult, operation,
+        network: { config: git.getNetworkProxy?.() || defaultNetworkProxy, legacySshProxy: git.getLegacySshProxy?.() || "", ...this.host.networkInfo?.() },
         hasMore: commits.length > this.limit && this.limit < 2000, options: this.options, limit: this.limit } });
       const activityKey = JSON.stringify([git.cwd, status.branch, branches.map(b => [b.name,b.hash]), tags.map(tag => [tag.name,tag.hash]), commits[0]?.hash]);
       void this.refreshActivity(git, generation, request, activityKey);
@@ -100,6 +104,20 @@ export class WorkspaceSession {
       }
       if (message.type === "more") { this.limit = Math.min(2000, this.limit + 100); await this.refresh(); return; }
       if (!git) return;
+      if (message.type === "saveNetworkProxy") {
+        if (!this.host.isTrusted()) throw new GitError(t("Trust this workspace before running Git operations"));
+        if (!this.host.saveNetworkProxy) throw new GitError(t("Network proxy configuration is unavailable in this host"));
+        const config = normalizeNetworkProxy(message.config);
+        await withGitMutation(git, async () => {
+          await this.host.saveNetworkProxy!(config);
+          git.setNetworkProxy(config);
+        });
+        if (generation === this.generation) {
+          this.post({ type: "networkProxySaved", config, request: message.request });
+          await this.changed(); await this.refresh();
+        }
+        return;
+      }
       if (message.type === "rebasePlan") {
         const plan = await git.rebasePlan(text(message, "ref"));
         if (generation === this.generation) this.post({ type: "rebasePlan", request: message.request, plan });

@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const Module=require('node:module');
 const original=Module._load;
 const uri={joinPath:(_base,...parts)=>parts.join('/')};
-const vscode={Uri:uri,workspace:{isTrusted:true},window:{},commands:{executeCommand:async()=>{}},env:{clipboard:{writeText:async()=>{}}}};
+const vscode={ConfigurationTarget:{Workspace:2},Uri:uri,workspace:{isTrusted:true},window:{},commands:{executeCommand:async()=>{}},env:{clipboard:{writeText:async()=>{}}}};
 Module._load=function(request,...args){if(request==='vscode')return vscode;return original.call(this,request,...args);};
 const {WorkspaceController}=require('../out/workspaceController');
 const {setLanguage,getLocalization,t:translate}=require('../out/localization');
@@ -93,4 +93,20 @@ test('activity is cached, failure stays isolated, and old repository activity ca
   assert.ok(c.sent.some(m=>m.type==='data'&&m.data?.root==='/broken'));
   assert.ok(c.sent.some(m=>m.type==='activity'&&m.root==='/broken'&&m.error));assert.equal(c.sent.some(m=>m.type==='error'),false);
   c.controller.dispose();
+});
+
+test('network proxy settings require workspace trust and persist validated workspace configuration',async()=>{
+  const git=fakeGit();let config={mode:'inherit',url:''},saved;
+  git.getNetworkProxy=()=>config;git.setNetworkProxy=value=>{config=value;};
+  vscode.ConfigurationTarget={Workspace:2};
+  vscode.workspace.getConfiguration=()=>({update:async(key,value,target)=>{saved={key,value,target};}});
+  const c=attach(git);
+  try {
+    vscode.workspace.isTrusted=false;c.receive({type:'saveNetworkProxy',request:91,config:{mode:'direct',url:''}});await flush();
+    assert.ok(c.sent.some(m=>m.type==='error'&&m.request===91));assert.equal(saved,undefined);
+    vscode.workspace.isTrusted=true;c.receive({type:'saveNetworkProxy',request:92,config:{mode:'custom',url:'http://name:password@host:7890'}});await flush();assert.equal(saved,undefined);
+    c.receive({type:'saveNetworkProxy',request:93,config:{mode:'custom',url:'127.0.0.1:7890'}});await flush();await flush();
+    assert.deepEqual(saved,{key:'proxy',value:{mode:'custom',url:'http://127.0.0.1:7890'},target:2});assert.equal(config.url,saved.value.url);
+    assert.ok(c.sent.some(m=>m.type==='networkProxySaved'&&m.request===93));
+  } finally {vscode.workspace.isTrusted=true;c.controller.dispose();delete vscode.workspace.getConfiguration;}
 });

@@ -39,7 +39,7 @@ For Remote SSH, install Gitrism on the remote Extension Host and reload the wind
 
 A native Neovim 0.10+ commit graph keeps history, patches, blame, and author attribution in the terminal. It needs only Neovim and Git; the browser workspace is optional. See the [setup guide](docs/neovim.md).
 
-See the [0.6.0 release notes](docs/releases/v0.6.0.md) for changes and upgrade notes.
+See the [0.6.1 release notes](docs/releases/v0.6.1.md) for changes and upgrade notes.
 
 ## Quick start
 
@@ -49,7 +49,7 @@ See the [0.6.0 release notes](docs/releases/v0.6.0.md) for changes and upgrade n
 4. Use **Working changes** to stage files and commit staged content.
 5. Drag the visible dividers to adjust navigation, history, details, or graph height. Double-click a divider to restore its default.
 
-Current-line attribution is enabled by default. Use **Gitrism: Toggle Inline Blame** to hide it, or **Gitrism: Toggle Function Attribution** for optional function/class CodeLens (also requires `editor.codeLens`). Configure these and the optional SSH proxy under `gitrism.*` settings.
+Current-line attribution is enabled by default. Use **Gitrism: Toggle Inline Blame** to hide it, or **Gitrism: Toggle Function Attribution** for optional function/class CodeLens (also requires `editor.codeLens`). Use **Network proxy** in the toolbar for HTTP/SOCKS5 settings; see the [proxy guide](docs/network-proxy.md). Other preferences are available under `gitrism.*` settings.
 
 ## Development
 

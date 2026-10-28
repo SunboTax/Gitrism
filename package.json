@@ -2,7 +2,7 @@
   "name": "gitrism",
   "displayName": "Gitrism",
   "description": "%extension.description%",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "publisher": "sunbotax",
   "license": "MIT",
   "repository": {
@@ -209,6 +209,33 @@
           "minimum": 1,
           "maximum": 500,
           "description": "%setting.codeLens.maxSymbols%"
+        },
+        "gitrism.proxy": {
+          "type": "object",
+          "scope": "window",
+          "restricted": true,
+          "default": {
+            "mode": "inherit",
+            "url": ""
+          },
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "inherit",
+                "custom",
+                "direct"
+              ],
+              "default": "inherit"
+            },
+            "url": {
+              "type": "string",
+              "default": "",
+              "maxLength": 2048
+            }
+          },
+          "description": "%setting.proxy%"
         }
       }
     }

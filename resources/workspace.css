@@ -43,6 +43,19 @@ button.primary {
 }
 button.primary:hover:not(:disabled) { background: var(--vscode-button-hoverBackground, #2484db); }
 .icon { width: 16px; height: 16px; flex: none; vertical-align: middle; }
+.header-actions .proxy-active { color: var(--cyan); background: color-mix(in srgb, var(--cyan) 12%, transparent); }
+.network-dialog { width: min(500px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; padding: 22px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--fg); box-shadow: 0 18px 60px #0006; }
+.network-dialog::backdrop { background: #0007; }
+.network-heading { display: flex; align-items: flex-start; gap: 12px; }
+.network-heading h2 { margin: 0; font-size: 18px; }
+.network-heading .icon-button { margin-left: auto; }
+.network-dialog p { color: var(--muted); line-height: 1.6; font-size: 12px; overflow-wrap: anywhere; }
+.network-dialog label { display: block; margin: 14px 0 6px; font-weight: 600; }
+.network-dialog select { width: 100%; max-width: none; }
+.network-host { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 6px; background: var(--surface); overflow-wrap: anywhere; }
+.network-dialog small { color: var(--muted); line-height: 1.6; }
+.network-dialog .network-error { color: var(--vscode-errorForeground, #e77); }
+.network-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .icon-button { width: 32px; height: 32px; padding: 7px; flex: none; }
 input, select, textarea {
   padding: 7px 10px; color: var(--vscode-input-foreground, var(--fg));

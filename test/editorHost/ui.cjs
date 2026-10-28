@@ -53,6 +53,16 @@ exports.verify = async function(port, state, output) {
     await ui.connection.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 });
     await ui.until(`document.activeElement?.dataset.hash === ${JSON.stringify(hashes[1])}`);
     checks.push('graph keyboard navigation');
+    await ui.evaluate('document.querySelector("[data-action=networkSettings]").click()');
+    await ui.until('document.querySelector("#network-settings[open]") !== null');
+    await ui.evaluate(`{const mode=document.getElementById('network-mode');mode.value='custom';mode.dispatchEvent(new Event('change'));document.getElementById('network-url').value='127.0.0.1:7890';document.getElementById('network-form').requestSubmit();}`);
+    await ui.until('document.getElementById("network-settings") === null && document.querySelector(".proxy-active") !== null');
+    await request('networkProxy');
+    await ui.evaluate('document.querySelector("[data-action=networkSettings]").click()');
+    await ui.evaluate(`{document.getElementById('network-mode').value='inherit';document.getElementById('network-form').requestSubmit();}`);
+    await ui.until('document.getElementById("network-settings") === null && document.querySelector(".proxy-active") === null');
+    checks.push('webview proxy controls and workspace settings');
+
     const themes = [];
     for (const [value, className] of [['Default Light Modern', 'vscode-light'], ['Default High Contrast', 'vscode-high-contrast'], ['Default High Contrast Light', 'vscode-high-contrast-light'], ['Default Dark Modern', 'vscode-dark']]) {
       const kind = await request('theme', { value });

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1
+
+- Add visible HTTP/SOCKS5 proxy controls with follow-system, custom, and direct modes for fetch, pull, push, and sync.
+- Apply proxy choices to HTTPS and OpenSSH remotes per subprocess, preserving Git configuration, SSH identity options, host-key checks, and TLS verification.
+- Display the Git host and remote loopback semantics; persist editor choices per workspace and share browser choices for the service session.
+- Localize the dialog in three languages, preserve drafts during refresh, and support narrow layouts and native dialog keyboard controls.
+- Verify real HTTPS and OpenSSH Git operations through HTTP and SOCKS5 proxies, including direct mode, credential URL rejection, and settings synchronization.
+
 ## 0.6.0
 
 - Verify the existing VSIX in official Cursor 3.26.16 on Linux x64, locally and over Remote SSH 1.1.16, with execution in the remote workspace extension host.

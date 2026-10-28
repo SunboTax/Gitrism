@@ -5,6 +5,7 @@ import { readFile, realpath, stat } from "node:fs/promises";
 import { GitService, GitError } from "./gitService";
 import { getLocale, getLocalization, t } from "./localization";
 import { WorkspaceSession, WorkspaceHost, WorkspaceMessage, formatError } from "./workspaceSession";
+import { hostname } from "node:os";
 
 export interface LocalServerOptions {
   repo: string;
@@ -84,7 +85,9 @@ export async function startLocalServer(options: LocalServerOptions) {
         if (options.editor) options.editor({ type: "openWorktree", path: directory });
         else send(client, { type: "notice", message: t("Open this worktree with gitrism serve --repo {0}", directory) });
       },
-      copy: async value => send(client, { type: "browserCopy", value })
+      copy: async value => send(client, { type: "browserCopy", value }),
+      networkInfo: () => ({ host: hostname(), remote: !!process.env.SSH_CONNECTION, scope: "session" }),
+      saveNetworkProxy: async () => { /* GitService shares this session's choice across browser clients. */ }
     };
   }
   async function jsonBody(req: http.IncomingMessage): Promise<Record<string, unknown>> {

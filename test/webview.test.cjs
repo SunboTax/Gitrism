@@ -73,6 +73,15 @@ for (const locale of ['en', 'zh-CN', 'zh-TW']) test('browser ['+locale+']: CSP, 
   // Use a readable sample subject in the screenshots after verifying hostile text.
   await evaluate("fixture.commits[3].subject='Create the initial repository';deliver({type:'data',data:fixture})");
   assert.equal(await evaluate("document.querySelector('[data-tab=graph]>span').textContent"),translate('Commit graph'));
+  await click('[data-action=networkSettings]');await until("document.querySelector('#network-settings[open]')!==null");
+  assert.equal(await evaluate("document.getElementById('network-title').textContent"),translate('Network proxy'));
+  await evaluate("document.getElementById('network-mode').value='custom';document.getElementById('network-mode').dispatchEvent(new Event('change'));document.getElementById('network-url').value='http://192.168.1.2:7890';deliver({type:'data',data:fixture})");
+  assert.equal(await evaluate("document.getElementById('network-url').value"),'http://192.168.1.2:7890','Repository refresh must preserve an open proxy draft');
+  await call('Emulation.setDeviceMetricsOverride',{width:320,height:500,deviceScaleFactor:1,mobile:false});
+  assert.ok(await evaluate("{const r=document.getElementById('network-settings').getBoundingClientRect();r.left>=0 && r.right<=320 && r.height<=500}"));
+  await click('#network-cancel');await until("document.getElementById('network-settings')===null");
+  await call('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+
   assert.equal(await evaluate("document.getElementById('search').placeholder"),translate('Search commits, press Enter'));
   await evaluate("fixture.commits[2].subject='中文提交消息保持原文';deliver({type:'data',data:fixture})");
   assert.equal(await evaluate("document.querySelectorAll('.commit-subject')[2].lastElementChild.textContent"),'中文提交消息保持原文');

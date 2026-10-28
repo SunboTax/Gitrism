@@ -64,6 +64,10 @@ exports.run = async () => {
         for (let i = 0; i < 100 && vscode.window.activeColorTheme.kind !== expected; i++) await pause(50);
         assert.equal(vscode.window.activeColorTheme.kind, expected);
         result = vscode.window.activeColorTheme.kind;
+      } else if (request.type === 'networkProxy') {
+        result = vscode.workspace.getConfiguration('gitrism').get('proxy');
+        assert.deepEqual(result, { mode: 'custom', url: 'http://127.0.0.1:7890' });
+        checks.push('workspace proxy setting persisted');
       } else if (request.type === 'source') {
         const shown = await vscode.window.showTextDocument(document, { preview: false });
         shown.selection = new vscode.Selection(request.line, 0, request.line, 0);

@@ -21,5 +21,6 @@
   "setting.codeLens.enabled": "Show optional code attribution and history links above functions and classes. Disabled by default; current-line inline blame is enabled by default.",
   "setting.codeLens.maxLines": "Maximum file length for CodeLens attribution.",
   "setting.codeLens.maxSymbols": "Maximum number of function and class locations annotated in each file.",
-  "command.toggleCodeLens": "Gitrism: Toggle Function Attribution"
+  "command.toggleCodeLens": "Gitrism: Toggle Function Attribution",
+  "setting.proxy": "Network proxy for Gitrism fetch, pull, push, and sync. Configure HTTP or SOCKS5 from the graph toolbar. Loopback addresses refer to the machine running Git, including Remote SSH hosts. This does not provide Git authentication."
 }

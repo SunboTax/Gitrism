@@ -46,11 +46,25 @@ test('real browser host reads history, compares content safely, stages and commi
   const b=await browser(t,app.url);if(!b)return;
   await b.until("document.querySelectorAll('.commit-row').length===1");
   assert.equal(await b.evaluate('location.hash'),'');
+  await b.click('[data-action=networkSettings]');await b.until("document.querySelector('#network-settings[open]')!==null");
+  assert.match(await b.evaluate("document.querySelector('#network-settings').textContent"),/machine running Git/);
+  if(process.env.GITRISM_PROXY_PREVIEW){const shot=await b.call('Page.captureScreenshot',{format:'png'});await fs.writeFile(process.env.GITRISM_PROXY_PREVIEW,Buffer.from(shot.data,'base64'));}
+  await b.evaluate("{const mode=document.getElementById('network-mode');mode.value='custom';mode.dispatchEvent(new Event('change'));document.getElementById('network-url').value='http://user:secret@localhost:7890';document.getElementById('network-form').requestSubmit();}");
+  await b.until("!document.getElementById('network-error').hidden && !document.getElementById('network-save').disabled");
+  await b.evaluate("document.getElementById('network-url').value='127.0.0.1:7890';document.getElementById('network-form').requestSubmit();");
+  await b.until("document.getElementById('network-settings')===null && document.querySelector('.proxy-active')!==null");
+  await b.click('[data-action=networkSettings]');assert.equal(await b.evaluate("document.getElementById('network-url').value"),'http://127.0.0.1:7890');
+  await b.call('Emulation.setDeviceMetricsOverride',{width:320,height:500,deviceScaleFactor:1,mobile:false});
+  assert.ok(await b.evaluate("{const r=document.getElementById('network-settings').getBoundingClientRect();r.left>=0 && r.right<=320 && r.height<=500}"));
+  await b.evaluate("document.getElementById('network-mode').value='inherit';document.getElementById('network-form').requestSubmit();");
+  await b.until("document.getElementById('network-settings')===null && document.querySelector('.proxy-active')===null");
+  await b.call('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+
   await b.click('[data-tab=changes]');await b.until("document.querySelector('[data-action=workingDiff]')!==null");
   await b.click('[data-action=workingDiff]');await b.until("document.querySelector('.browser-diff[open]')!==null");
   assert.ok((await b.evaluate("document.querySelector('.browser-diff').textContent")).includes('<script>changed</script>'));
   assert.equal(await b.evaluate("document.querySelectorAll('.browser-diff script,.browser-diff img').length"),0);
-  await b.click('.browser-diff-header button');assert.equal(events.at(-1).type,'openFile');assert.equal(events.at(-1).path,path.join(dir,'src/a file.ts'));
+  await b.click('.browser-diff-header button');for(let i=0;i<100&&!events.length;i++)await new Promise(r=>setTimeout(r,10));assert.equal(events.at(-1).type,'openFile');assert.equal(events.at(-1).path,path.join(dir,'src/a file.ts'));
   await b.evaluate("document.querySelector('.browser-diff').close()");
   await b.click('[data-action=stage]');await b.until("document.querySelector('[data-action=unstage]')!==null");
   await b.evaluate("{const d=document.getElementById('draft');d.value='Commit from local browser';d.dispatchEvent(new Event('input',{bubbles:true}));}");
@@ -97,4 +111,15 @@ test('CLI editor bridge queries attribution, rejects invalid ranges and paths, a
   assert.match((await until(m=>m.id===2)).error,/Invalid line range/);assert.ok((await until(m=>m.id===3)).error);
   child.stdin.end();await new Promise(r=>child.once('exit',r));assert.equal(child.exitCode,0,stderr);
   await assert.rejects(fetch(ready.url));
+});
+
+test('browser proxy settings validate requests, synchronize clients, and reset with the service',async t=>{
+  const {dir}=await repository(t),app=await workspace(t,dir),a=await connect(app),b=await connect(app);t.after(()=>a.close());t.after(()=>b.close());
+  await a.send({type:'saveNetworkProxy',request:81,config:{mode:'custom',url:'http://user:secret@localhost:7890'}});
+  await a.until(m=>m.type==='error'&&m.request===81);
+  await a.send({type:'saveNetworkProxy',request:82,config:{mode:'custom',url:'192.168.1.2:7890'}});
+  const saved=await a.until(m=>m.type==='networkProxySaved'&&m.request===82);assert.equal(saved.config.url,'http://192.168.1.2:7890');
+  const update=await b.until(m=>m.type==='data'&&m.data.network.config.mode==='custom');assert.equal(update.data.network.scope,'session');assert.equal(update.data.network.config.url,saved.config.url);
+  const second=await workspace(t,dir),c=await connect(second);t.after(()=>c.close());await c.send({type:'ready'});
+  assert.equal((await c.until(m=>m.type==='data')).data.network.config.mode,'inherit');
 });

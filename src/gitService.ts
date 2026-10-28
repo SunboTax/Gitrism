@@ -6,6 +6,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
+import { NetworkProxy, defaultNetworkProxy, normalizeNetworkProxy, sshProxyCommand } from "./networkProxy";
 const execFileAsync = promisify(execFile);
 export interface RepositoryStatus { branch: string; upstream?: string; ahead: number; behind: number; staged: number; changed: number; untracked: number; conflicted: number; files: WorkingFile[] }
 export interface WorkingFile { path: string; oldPath?: string; index: string; working: string; conflict: boolean }
@@ -81,14 +82,17 @@ function unquoteGitValue(value: string): string {
 }
 export class GitService {
   private worktreeNullOutput = true;
-  public constructor(public readonly cwd: string, private readonly sshProxy?: string) {}
+  private networkProxy: NetworkProxy;
+  public constructor(public readonly cwd: string, private readonly sshProxy?: string, proxy: NetworkProxy = defaultNetworkProxy) { this.networkProxy = normalizeNetworkProxy(proxy); }
+  public getNetworkProxy(): NetworkProxy { return { ...this.networkProxy }; }
+  public getLegacySshProxy(): string { return this.sshProxy || ""; }
+  public setNetworkProxy(proxy: NetworkProxy): void { this.networkProxy = normalizeNetworkProxy(proxy); }
   private async run(args: string[], literalPaths = false, extraEnv: Record<string, string> = {}): Promise<string> {
     try {
       return (await execFileAsync("git", ["--no-pager", ...(literalPaths ? ["--literal-pathspecs"] : []), ...args], {
         cwd: this.cwd, maxBuffer: 16 * 1024 * 1024, windowsHide: true, timeout: 60_000, killSignal: "SIGTERM",
         env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GCM_INTERACTIVE: "Never", GIT_ASKPASS: "", SSH_ASKPASS: "",
-          ...extraEnv,
-          ...(this.sshProxy ? { GIT_SSH_COMMAND: buildSshCommand(this.sshProxy) } : {}) }
+          ...extraEnv }
       })).stdout;
     } catch (error) {
       if (error instanceof GitError) throw error;
@@ -96,6 +100,29 @@ export class GitService {
       throw new GitError(t("Git operation failed"), e.code === "ETIMEDOUT" || e.killed
         ? t("Git operation exceeded 60 seconds. Check the remote URL, SSH keys, proxy, and network.") : e.stderr || e.message, e.code);
     }
+  }
+  private async runNetwork(args: string[]): Promise<void> {
+    const proxy = this.getNetworkProxy(), env: Record<string, string> = {};
+    const config: string[] = [];
+    if (proxy.mode !== "inherit") {
+      const value = proxy.mode === "custom" ? proxy.url : "";
+      config.push("-c", "http.proxy=" + value);
+      // Explicit remote.*.proxy and http.<url>.proxy must not override this UI choice.
+      for (const remote of (await this.run(["remote"])).trim().split(/\r?\n/).filter(Boolean)) config.push("-c", `remote.${remote}.proxy=${value}`);
+      for (const key of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"]) env[key] = "";
+      env.NO_PROXY = env.no_proxy = proxy.mode === "direct" ? "*" : "";
+    }
+    if (proxy.mode !== "inherit" || this.sshProxy) {
+      let command = process.env.GIT_SSH_COMMAND;
+      if (!command) { try { command = (await this.run(["config", "--get", "core.sshCommand"])).trim(); } catch { /* OpenSSH default. */ } }
+      if (proxy.mode === "inherit") env.GIT_SSH_COMMAND = buildSshCommand(this.sshProxy!);
+      else {
+        env.GIT_SSH_COMMAND = sshProxyCommand(command || "ssh", proxy.mode === "custom");
+        env.GIT_SSH_VARIANT = "ssh";
+        if (proxy.mode === "custom") { env.GITRISM_PROXY_URL = proxy.url; env.ELECTRON_RUN_AS_NODE = "1"; }
+      }
+    }
+    await this.run([...config, ...args], false, env);
   }
   public filePath(file: string): string {
     if (!file || path.isAbsolute(file) || file.includes("\0") || /(^|\/)\.\.($|\/)/.test(file)) throw new GitError(t("Invalid repository file path"));
@@ -139,9 +166,9 @@ export class GitService {
       return { name, current: head === "*", remote: remote || undefined, hash, isRemote: full.startsWith("refs/remotes/"), symref };
     }).filter(b => !b.symref);
   }
-  public async fetch(): Promise<void> { await this.run(["fetch", "--all", "--prune"]); }
-  public async pull(): Promise<void> { await this.run(["pull", "--ff-only"]); }
-  public async push(): Promise<void> { await this.run(["push"]); }
+  public async fetch(): Promise<void> { await this.runNetwork(["fetch", "--all", "--prune"]); }
+  public async pull(): Promise<void> { await this.runNetwork(["pull", "--ff-only"]); }
+  public async push(): Promise<void> { await this.runNetwork(["push"]); }
   public async sync(): Promise<void> { await this.pull(); await this.push(); }
   public async stageAll(): Promise<void> { await this.run(["add", "-A"]); }
   public async unstageAll(): Promise<void> {

@@ -2,7 +2,7 @@
 
 Gitrism independently implements common local Git workflows. The initial design referenced the commands and workflow categories exposed by the locally installed GitLens 19.3.0 manifest. The Git service, topology layout, interface, and assets are independently implemented; Gitrism contains no GitLens code or assets and does not modify subscription checks.
 
-This document describes actual behavior in Gitrism 0.6.0. It does not claim complete parity with another product or subscription tier.
+This document describes actual behavior in Gitrism 0.6.1. It does not claim complete parity with another product or subscription tier.
 
 | Workflow | Current support | Limits |
 | --- | --- | --- |
@@ -22,6 +22,7 @@ This document describes actual behavior in Gitrism 0.6.0. It does not claim comp
 | File timeline | Rename-following history, monthly commit counts, details, and diffs | At most 500 commits; chart measures commit counts, not changed lines |
 | Blame and line history | Current-line annotations enabled by default, with author/date/commit/message, hover details, commit links, and selected-line history; optional whole-file mode | Current-line mode queries only the cursor line; whole-file annotations have a configurable file-length limit; unsaved annotations are cleared |
 | Multiple repositories | Workspace roots and nested repositories discovered by built-in Git | No independent recursive filesystem scan |
+| Network proxy | Toolbar controls for HTTP/SOCKS5, inherited settings, or direct connections; HTTPS and OpenSSH transport | Existing reachable proxy required; editor workspace or browser service-session scope; no proxy authentication; see the [guide](network-proxy.md) |
 | Remote operations | Fetch and prune, fast-forward pull, push, and sync | Existing credentials; noninteractive operations; 60-second timeout |
 
 ## Neovim

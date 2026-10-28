@@ -21,5 +21,6 @@
   "setting.codeLens.enabled": "在函式和類別上方顯示可選的程式碼歸屬與歷史入口。預設關閉；預設啟用游標所在行的行尾註釋。",
   "setting.codeLens.maxLines": "CodeLens 程式碼歸屬功能處理的最大檔案行數。",
   "setting.codeLens.maxSymbols": "每個檔案中顯示歸屬資訊的函式和類位置上限。",
-  "command.toggleCodeLens": "Gitrism: 切換函式歸屬資訊"
+  "command.toggleCodeLens": "Gitrism: 切換函式歸屬資訊",
+  "setting.proxy": "Gitrism 擷取、提取、推送及同步使用的網路代理。可在提交圖工具列設定 HTTP 或 SOCKS5。回環位址指執行 Git 的機器，包括 Remote SSH 遠端。代理不提供 Git 身分驗證。"
 }

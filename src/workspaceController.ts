@@ -5,6 +5,7 @@ import { GitError, GitService } from "./gitService";
 import { openDiff } from "./revisionProvider";
 import { WorkspaceSession, WorkspaceMessage } from "./workspaceSession";
 import { withGitMutation } from "./mutationLock";
+import { hostname } from "node:os";
 
 export async function executeGitMutation(git: GitService, action: () => Promise<void>): Promise<void> {
   if (!vscode.workspace.isTrusted) throw new GitError(t("Trust this workspace before running Git operations"));
@@ -27,7 +28,9 @@ export class WorkspaceController implements vscode.Disposable {
       openDiff,
       openFile: async file => { await vscode.window.showTextDocument(vscode.Uri.file(file)); },
       openWorktree: async directory => { await vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(directory), { forceNewWindow: true }); },
-      copy: async value => vscode.env.clipboard.writeText(value)
+      copy: async value => vscode.env.clipboard.writeText(value),
+      networkInfo: () => ({ host: hostname(), remote: !!vscode.env.remoteName, scope: "workspace" }),
+      saveNetworkProxy: async config => vscode.workspace.getConfiguration("gitrism").update("proxy", config, vscode.ConfigurationTarget.Workspace)
     }, changed);
   }
   public dispose(): void { this.listener?.dispose(); this.webview = undefined; this.session.dispose(); }

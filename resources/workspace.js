@@ -8,7 +8,8 @@
   const t = GitrismI18n.createTranslator(localization.messages);
   let state = { tab: 'graph', draft: '', selected: '', compareFrom: 'HEAD', compareTo: '', ...saved, searchDraft: undefined };
   let data, detail, comparison, busy = false, loading = true, detailRequest = 0, compareRequest = 0, serial = 0;
-  let activity, activityError, activityWidth = 280;
+  let activity, activityError, activityWidth = 280, networkRequest;
+
   let detailLoading = false, comparisonLoading = false, toastTimer, timelineCommits = [], timelineLoading = false, timelineRequest = 0, rebasePlan, rebaseLoading = false, rebaseRequest = 0;
   const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const tr = (...args) => e(t(...args));
@@ -26,6 +27,7 @@
   const divider = kind => `<div id="${kind}-resizer" class="pane-resizer ${kind}-resizer" data-resize="${kind}" role="separator" tabindex="0" aria-orientation="vertical" aria-label="${kind==='navigation'?tr("Resize navigation"):tr("Resize history and details")}" title="${tr("Drag to resize. Use arrow keys; double-click or press Enter to reset.")}"></div>`;
   // Original line icons share a single coordinate system and inherit the theme color.
   const paths = {
+    network: 'M4 4h6v6H4Z M14 14h6v6h-6Z M7 10v7h7 M14 4h6v6h-6Z',
     prism: 'M12 2 22 19H2Z M12 2v17 M2 19l10-6 10 6',
     graph: 'M6 5v14 M18 5v3c0 6-12 2-12 8 M4 5a2 2 0 1 0 4 0a2 2 0 1 0-4 0 M16 5a2 2 0 1 0 4 0a2 2 0 1 0-4 0 M4 19a2 2 0 1 0 4 0a2 2 0 1 0-4 0',
     changes: 'M5 3h14v18H5Z M9 8h6 M9 12h6 M9 16h4',
@@ -56,11 +58,11 @@
     trash: 'M3 6h18 M9 6V3h6v3 M6 6l1 15h10l1-15 M10 10v7 M14 10v7'
   };
   const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.commit}"/></svg>`;
-  const actionIcons = {chooseRepository:'folder',fetch:'down',pull:'down',push:'up',sync:'refresh',refresh:'refresh',openGraph:'external',search:'search',clearSearch:'close',copy:'copy',compareStart:'compare',compareHead:'compare',compareRef:'compare',createBranch:'branch',createTag:'tag',rebasePlan:'rebase',operation:'commit',stage:'plus',unstage:'minus',stageAll:'plus',unstageAll:'minus',commit:'check',stashPush:'stash',createWorktree:'plus',openWorktree:'external',removeWorktree:'trash',deleteBranch:'trash',deleteTag:'trash',focusRef:'graph',checkout:'branch',swapCompare:'compare',compare:'compare',timelineSearch:'timeline',activeHistory:'file',applyRebase:'check',more:'plus'};
+  const actionIcons = {networkSettings:'network',chooseRepository:'folder',fetch:'down',pull:'down',push:'up',sync:'refresh',refresh:'refresh',openGraph:'external',search:'search',clearSearch:'close',copy:'copy',compareStart:'compare',compareHead:'compare',compareRef:'compare',createBranch:'branch',createTag:'tag',rebasePlan:'rebase',operation:'commit',stage:'plus',unstage:'minus',stageAll:'plus',unstageAll:'minus',commit:'check',stashPush:'stash',createWorktree:'plus',openWorktree:'external',removeWorktree:'trash',deleteBranch:'trash',deleteTag:'trash',focusRef:'graph',checkout:'branch',swapCompare:'compare',compare:'compare',timelineSearch:'timeline',activeHistory:'file',applyRebase:'check',more:'plus'};
   const btn = (label, action, attrs = '', primary = false) => {
     const classes = attrs.match(/class="([^"]*)"/)?.[1] || '';
     attrs = attrs.replace(/class="[^"]*"/g, '');
-    const onlyIcon = ['refresh','openGraph','swapCompare','moveRebase'].includes(action);
+    const onlyIcon = ['refresh','openGraph','swapCompare','moveRebase','networkSettings'].includes(action);
     const glyph = action === 'moveRebase' ? (attrs.includes('data-direction="-1"') ? 'arrowUp' : 'arrowDown') : actionIcons[action];
     if (!attrs.includes('title=') && !onlyIcon) attrs += ` title="${e(label.replace(/<[^>]*>/g, ''))}"`;
     if (!attrs.includes('aria-label=') && !onlyIcon) attrs += ` aria-label="${e(label.replace(/<[^>]*>/g, ''))}"`;
@@ -207,7 +209,7 @@
     const tabs = [['graph','graph',t("Commit graph")],['changes','changes',t("Working changes")],['branches','branch',t("Branches")],['tags','tag',t("Tags")],['stashes','stash','Stashes'],['worktrees','worktree','Worktrees'],['compare','compare',t("Compare")],['timeline','timeline',t("File timeline")],['rebase','rebase',t("Organize history")]];
     const s = data.status;
     const navigation = tabs.map(([id,glyph,label],i)=>`${i===0 ? `<span class="nav-heading">${tr("Repository")}</span>` : i===6 ? `<span class="nav-heading">${tr("Explore and organize")}</span>` : ''}<button class="tab ${state.tab===id?'active':''}" data-action="tab" data-tab="${id}" aria-current="${state.tab===id?'page':'false'}">${icon(glyph)}<span>${label}</span>${id==='changes' && s.files.length ? `<span class="count">${s.files.length}</span>` : ''}</button>`).join('');
-    app.innerHTML = `<header class="header"><div class="brand"><span class="brand-mark">${icon('prism')}</span><div><strong>Gitrism</strong><small>See changes. Know history.</small></div></div><div class="repository-context">${btn(`<span class="repo-name">${e(data.name)}</span>` + icon('chevron'),'chooseRepository',`class="repo-picker" title="${e(data.root)}" aria-label="${tr('Choose repository: {0}', data.name)}"`)}<span class="branch-label" title="${e(s.branch)}">${icon('branch')}<span>${e(s.branch)}</span></span><span class="remote-label">${s.upstream ? '↑ ' + s.ahead + ' · ↓ ' + s.behind : t("No upstream")}</span></div><div class="header-actions"><div class="remote-actions">${btn(t("Fetch"),'fetch')}${btn(t("Pull"),'pull')}${btn(t("Push"),'push')}${btn(t("Sync"),'sync','class="sync-button"')}</div>${btn(t("Refresh"),'refresh',`title="${tr("Refresh")}" aria-label="${tr("Refresh")}"`)}${btn(t("Open in editor"),'openGraph',`title="${tr("Open in editor")}" aria-label="${tr("Open in editor")}"`)}</div></header><div class="workspace-shell"><nav id="repository-nav" class="tabs" aria-label="${tr("Repository navigation")}">${navigation}<div class="nav-signature"><span class="signature-spectrum"></span><small>See changes.<br>Know history.</small></div></nav>${divider('navigation')}<div class="workspace-main">${data.operation ? `<div class="operation-bar"><span>${tr('Operation in progress: {0} · Conflicted files: {1}', data.operation, s.conflicted)}</span>${btn(t("Continue"),'finishOperation','data-operation-action="continue"')}${btn(t("Abort"),'finishOperation','data-operation-action="abort"')}</div>` : ''}<div class="content content-${e(state.tab)}">${({graph:graphView,changes:changesView,branches:branchesView,tags:tagsView,stashes:stashesView,worktrees:worktreesView,compare:compareView,timeline:timelineView,rebase:rebaseView}[state.tab] || graphView)()}</div></div></div><footer class="footer"><span class="workspace-status ${s.conflicted ? 'has-conflicts' : ''}"><span class="status-dot"></span>${s.files.length ? tr('Changes: {0} · Staged: {1}', s.files.length, s.staged) : t("Working tree clean")}${s.conflicted ? tr(' · Conflicts: {0}', s.conflicted) : ''}</span><span id="loading-label">${busy ? t("Running Git operation…") : loading ? t("Loading…") : t("Local repository")}</span></footer>`;
+    app.innerHTML = `<header class="header"><div class="brand"><span class="brand-mark">${icon('prism')}</span><div><strong>Gitrism</strong><small>See changes. Know history.</small></div></div><div class="repository-context">${btn(`<span class="repo-name">${e(data.name)}</span>` + icon('chevron'),'chooseRepository',`class="repo-picker" title="${e(data.root)}" aria-label="${tr('Choose repository: {0}', data.name)}"`)}<span class="branch-label" title="${e(s.branch)}">${icon('branch')}<span>${e(s.branch)}</span></span><span class="remote-label">${s.upstream ? '↑ ' + s.ahead + ' · ↓ ' + s.behind : t("No upstream")}</span></div><div class="header-actions"><div class="remote-actions">${btn(t("Fetch"),'fetch')}${btn(t("Pull"),'pull')}${btn(t("Push"),'push')}${btn(t("Sync"),'sync','class="sync-button"')}</div>${btn(t("Network proxy"),'networkSettings',`class="${data.network?.config?.mode==='custom'?'proxy-active':''}" title="${data.network?.config?.mode==='custom'?tr('Proxy: {0}',data.network.config.url):tr("Network proxy")}" aria-label="${tr("Network proxy")}"`)}${btn(t("Refresh"),'refresh',`title="${tr("Refresh")}" aria-label="${tr("Refresh")}"`)}${btn(t("Open in editor"),'openGraph',`title="${tr("Open in editor")}" aria-label="${tr("Open in editor")}"`)}</div></header><div class="workspace-shell"><nav id="repository-nav" class="tabs" aria-label="${tr("Repository navigation")}">${navigation}<div class="nav-signature"><span class="signature-spectrum"></span><small>See changes.<br>Know history.</small></div></nav>${divider('navigation')}<div class="workspace-main">${data.operation ? `<div class="operation-bar"><span>${tr('Operation in progress: {0} · Conflicted files: {1}', data.operation, s.conflicted)}</span>${btn(t("Continue"),'finishOperation','data-operation-action="continue"')}${btn(t("Abort"),'finishOperation','data-operation-action="abort"')}</div>` : ''}<div class="content content-${e(state.tab)}">${({graph:graphView,changes:changesView,branches:branchesView,tags:tagsView,stashes:stashesView,worktrees:worktreesView,compare:compareView,timeline:timelineView,rebase:rebaseView}[state.tab] || graphView)()}</div></div></div><footer class="footer"><span class="workspace-status ${s.conflicted ? 'has-conflicts' : ''}"><span class="status-dot"></span>${s.files.length ? tr('Changes: {0} · Staged: {1}', s.files.length, s.staged) : t("Working tree clean")}${s.conflicted ? tr(' · Conflicts: {0}', s.conflicted) : ''}</span><span id="loading-label">${busy ? t("Running Git operation…") : loading ? t("Loading…") : t("Local repository")}</span></footer>`;
     paneResize.sync();
     activityObserver.disconnect();
     const activityNode=document.getElementById('personal-activity'); if(activityNode) activityObserver.observe(activityNode);
@@ -216,6 +218,25 @@
     const content=app.querySelector('.content');if(content?.className===contentClass)content.scrollTop=contentScroll;
     const scrollNode = document.getElementById('graph-scroll'); if (scrollNode) scrollNode.scrollTop=scroll;
     if (focused && document.getElementById(focused)) { const node=document.getElementById(focused); node.focus(); if (typeof start==='number' && node.setSelectionRange && node.type!=='search') node.setSelectionRange(start,end); }
+  }
+  function closeNetworkSettings() { document.getElementById('network-settings')?.close(); }
+  function openNetworkSettings() {
+    if (document.getElementById('network-settings')) return;
+    const network=data?.network || {}, config=network.config || {mode:'inherit',url:''};
+    const dialog=document.createElement('dialog'); dialog.id='network-settings';dialog.className='network-dialog';
+    dialog.setAttribute('aria-labelledby','network-title');
+    dialog.innerHTML=`<form id="network-form"><div class="network-heading"><div><h2 id="network-title">${tr("Network proxy")}</h2><p>${tr("Used by Fetch, Pull, Push, and Sync for HTTPS and SSH remotes.")}</p></div><button type="button" id="network-close" class="icon-button" aria-label="${tr("Close")}">${icon('close')}</button></div><div class="network-host">${icon('network')}<span>${network.remote ? tr("Git runs on remote host {0}",network.host || '') : tr("Git runs on {0}",network.host || t("this machine"))}</span></div><label for="network-mode">${tr("Connection mode")}</label><select id="network-mode">${[['inherit',t("Follow Git / system settings")],['custom',t("Use a proxy")],['direct',t("Direct connection")]].map(([value,label])=>`<option value="${value}" ${config.mode===value?'selected':''}>${e(label)}</option>`).join('')}</select><label for="network-url">${tr("Proxy address")}</label><input id="network-url" value="${e(config.url)}" placeholder="http://127.0.0.1:7890" maxlength="2048" autocomplete="off" spellcheck="false" aria-describedby="network-address-help"><p id="network-address-help">${tr("HTTP and SOCKS5 are supported. An address without a scheme uses HTTP.")}</p><p>${tr("127.0.0.1 refers to the machine running Git. Another IP must provide a reachable proxy service; it does not create forwarding automatically.")}</p>${network.legacySshProxy ? `<p>${tr("Follow mode also retains the legacy SSH proxy: {0}",network.legacySshProxy)}</p>` : ''}<p>${tr("A proxy changes the network route. Git credentials and SSH keys are still required. Do not put passwords or tokens in the proxy address.")}</p><small>${network.scope==='session' ? tr("Applies to this browser service session; resets when the service restarts.") : tr("Saved in this workspace's VS Code settings; shared by its Gitrism views.")}</small><p id="network-error" class="network-error" role="alert" hidden></p><div class="network-buttons"><button type="button" id="network-cancel">${tr("Cancel")}</button><button type="submit" id="network-save" class="primary">${tr("Save")}</button></div></form>`;
+    document.body.append(dialog);
+    const mode=dialog.querySelector('#network-mode'),url=dialog.querySelector('#network-url');
+    const update=()=>{url.disabled=mode.value!=='custom';};update();mode.addEventListener('change',update);
+    dialog.querySelector('#network-close').onclick=dialog.querySelector('#network-cancel').onclick=()=>dialog.close();
+    dialog.addEventListener('close',()=>{dialog.remove();networkRequest=undefined;document.querySelector('[data-action=networkSettings]')?.focus();},{once:true});
+    dialog.querySelector('form').addEventListener('submit',event=>{
+      event.preventDefault();if(networkRequest)return;
+      networkRequest=++serial;dialog.querySelector('#network-save').disabled=true;dialog.querySelector('#network-error').hidden=true;
+      send('saveNetworkProxy',{config:{mode:mode.value,url:url.value},request:networkRequest});
+    });
+    dialog.showModal();mode.focus();
   }
   function select(hash, timeline = false) {
     state.selected=hash; if (!timeline) state.tab='graph'; detail=undefined; detailLoading=true; persist(); render();
@@ -249,6 +270,7 @@
     if (event.target.closest('.advanced-search summary')) { state.advancedOpen=!event.target.closest('.advanced-search').open;persist(); }
     const button=event.target.closest('button[data-action]'); if (!button || button.disabled) return;
     const a=button.dataset.action, d=button.dataset, value=id=>document.getElementById(id)?.value || '';
+    if (a==='networkSettings') { openNetworkSettings();return; }
     if (a==='changesMode') { state.changesMode=d.mode==='list'?'list':'tree';persist();render();return; }
     if (a==='expandDirectories' || a==='collapseDirectories') {
       const open=a==='expandDirectories', directories=app.querySelectorAll('.working-directory');
@@ -298,11 +320,11 @@
   window.addEventListener('message',event=>{
     const m=event.data;
     if (m.type==='data') {
-      if (m.data && state.root && state.root!==m.data.root) { state.selected=''; state.draft=''; state.searchDraft=undefined;state.changeDirectories={};activity=undefined;activityError=undefined;detail=undefined; comparison=undefined; }
+      if (m.data && state.root && state.root!==m.data.root) { closeNetworkSettings(); state.selected=''; state.draft=''; state.searchDraft=undefined;state.changeDirectories={};activity=undefined;activityError=undefined;detail=undefined; comparison=undefined; }
       data=m.data; state.root=data?.root; loading=false; persist(); render();
       if (state.selected && !detail && !detailLoading && data && ['graph','timeline'].includes(state.tab)) select(state.selected,state.tab==='timeline');
     }
-    if (m.type==='reset') { activity=undefined;activityError=undefined;data=undefined; detail=undefined; comparison=undefined; timelineCommits=[];rebasePlan=undefined;rebaseLoading=false; state={tab:'graph',draft:'',selected:'',compareFrom:'HEAD',compareTo:'',layout:state.layout,changesMode:state.changesMode}; detailRequest=++serial; compareRequest=++serial; timelineRequest=++serial;rebaseRequest=++serial; detailLoading=false; comparisonLoading=false; timelineLoading=false; persist(); render(); }
+    if (m.type==='reset') { closeNetworkSettings(); activity=undefined;activityError=undefined;data=undefined; detail=undefined; comparison=undefined; timelineCommits=[];rebasePlan=undefined;rebaseLoading=false; state={tab:'graph',draft:'',selected:'',compareFrom:'HEAD',compareTo:'',layout:state.layout,changesMode:state.changesMode}; detailRequest=++serial; compareRequest=++serial; timelineRequest=++serial;rebaseRequest=++serial; detailLoading=false; comparisonLoading=false; timelineLoading=false; persist(); render(); }
     if (m.type==='activity' && m.root===data?.root) { activity=m.activity;activityError=m.error;updateActivity();const mine=document.getElementById('only-mine');if(mine)mine.disabled=!activity?.email; }
     if (m.type==='loading') { loading=m.value; app.setAttribute('aria-busy',String(loading || busy)); const label=document.getElementById('loading-label'); if(label)label.textContent=loading ? t("Loading…") : t("Local repository"); }
     if (m.type==='busy') { busy=m.value; render(); }
@@ -314,7 +336,8 @@
     if (m.type==='rebasePlan' && m.request===rebaseRequest) { rebasePlan={...m.plan,commits:m.plan.commits.map(c=>({...c,action:'pick'}))};rebaseLoading=false;render(); }
     if (m.type==='rebased') { rebasePlan=undefined;state.tab='graph';state.selected='';detail=undefined;persist();render(); }
     if (m.type==='committed') { state.draft=''; persist(); }
-    if (m.type==='error') { if(m.request && ![detailRequest,compareRequest,timelineRequest,rebaseRequest].includes(m.request))return; if (m.request===detailRequest) { detailLoading=false; state.selected=''; persist(); } if(m.request===compareRequest)comparisonLoading=false; if(m.request===timelineRequest)timelineLoading=false;if(m.request===rebaseRequest)rebaseLoading=false; loading=false; notice(m.message,true); render(); }
+    if (m.type==='error') { if(m.request===networkRequest && networkRequest) { networkRequest=undefined;const node=document.getElementById('network-error');if(node){node.textContent=m.message;node.hidden=false;document.getElementById('network-save').disabled=false;} } if(m.request && ![detailRequest,compareRequest,timelineRequest,rebaseRequest,networkRequest].includes(m.request))return; if (m.request===detailRequest) { detailLoading=false; state.selected=''; persist(); } if(m.request===compareRequest)comparisonLoading=false; if(m.request===timelineRequest)timelineLoading=false;if(m.request===rebaseRequest)rebaseLoading=false; loading=false; notice(m.message,true); render(); }
+    if (m.type==='networkProxySaved' && m.request===networkRequest) { closeNetworkSettings();notice(t("Network proxy saved")); }
     if (m.type==='notice') notice(m.message);
   });
   send('ready');

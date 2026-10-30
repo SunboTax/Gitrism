@@ -2,7 +2,7 @@
   "name": "gitrism",
   "displayName": "Gitrism",
   "description": "%extension.description%",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "publisher": "sunbotax",
   "license": "MIT",
   "repository": {

@@ -12,6 +12,7 @@ const run=promisify(execFile);
 const {GitService}=require('../out/gitService');
 const {normalizeNetworkProxy,sshProxyCommand}=require('../out/networkProxy');
 const {connectSshProxy}=require('../out/sshProxy');
+const {withGitAuthentication}=require('../out/gitAuthentication');
 
 async function listen(t,server){
   const sockets=new Set();server.on('connection',s=>{sockets.add(s);s.on('close',()=>sockets.delete(s));});
@@ -69,8 +70,10 @@ test('real HTTPS fetch, pull and push use HTTP/SOCKS proxies, override Git proxy
   const local=path.join(root,'local'),bare=path.join(root,'remote.git');await fs.mkdir(local);
   await git(root,'init','--bare',bare);await git(local,'init','-b','main');await git(local,'config','user.name','Proxy Test');await git(local,'config','user.email','test@example.invalid');
   await fs.writeFile(path.join(local,'file'),'first\n');await git(local,'add','.');await git(local,'commit','-m','Initial');await git(local,'remote','add','origin',bare);await git(local,'push','-u','origin','main');await git(bare,'config','http.receivepack','true');
+  await git(local,'config','credential.helper','');
   await run('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-days','1','-subj','/CN=127.0.0.1','-addext','subjectAltName=IP:127.0.0.1','-keyout',path.join(root,'key.pem'),'-out',path.join(root,'cert.pem')]);
   const origin=https.createServer({key:await fs.readFile(path.join(root,'key.pem')),cert:await fs.readFile(path.join(root,'cert.pem'))},(req,res)=>{
+    if(req.headers.authorization!=='Basic '+Buffer.from('test:fixture-token').toString('base64')){res.writeHead(401,{'WWW-Authenticate':'Basic realm="Proxy fixture"'}).end();return;}
     const url=new URL(req.url,'https://127.0.0.1');
     const child=spawn('git',['http-backend'],{env:{...env,GIT_PROJECT_ROOT:root,GIT_HTTP_EXPORT_ALL:'1',PATH_INFO:url.pathname,QUERY_STRING:url.search.slice(1),REQUEST_METHOD:req.method,CONTENT_TYPE:req.headers['content-type']||'',CONTENT_LENGTH:req.headers['content-length']||'',HTTP_GIT_PROTOCOL:req.headers['git-protocol']||'',REMOTE_USER:'test'},stdio:['pipe','pipe','pipe']});
     req.pipe(child.stdin);child.stdin.on('error',()=>{});child.stderr.resume();let header=Buffer.alloc(0),sent=false;
@@ -83,7 +86,8 @@ test('real HTTPS fetch, pull and push use HTTP/SOCKS proxies, override Git proxy
   await git(local,'config','remote.origin.proxy','http://127.0.0.1:1');
   await git(local,'config',`http.https://127.0.0.1:${port}/.proxy`,'http://127.0.0.1:1');
   const configBefore=await git(local,'config','--local','--list');
-  const service=new GitService(local,undefined,{mode:'custom',url:proxy.http});
+  let prompts=0;
+  const service=new GitService(local,undefined,{mode:'custom',url:proxy.http},operation=>withGitAuthentication(async prompt=>{prompts++;return prompt.startsWith('Username')?'test':'fixture-token';},operation));
   for(const [scheme,url] of [['http',proxy.http],['socks',proxy.socks]]){
     service.setNetworkProxy({mode:'custom',url});await service.fetch();await service.pull();
     await fs.appendFile(path.join(local,'file'),scheme+'\n');await git(local,'commit','-am','Push via '+scheme);await service.push();
@@ -94,6 +98,7 @@ test('real HTTPS fetch, pull and push use HTTP/SOCKS proxies, override Git proxy
   service.setNetworkProxy({mode:'inherit',url:''});await assert.rejects(service.fetch(),/Git operation failed/);
   service.setNetworkProxy({mode:'custom',url:'http://127.0.0.1:1'});assert.equal((await service.status()).branch,'main');
   assert.equal(await git(local,'config','--local','--list'),configBefore);
+  assert.ok(prompts>0,'TLS and both proxy transports must also support credential prompts');
 });
 
 test('SSH tunnels preserve immediate banners and data with HTTP and SOCKS5; helper works over stdio',{timeout:10000},async t=>{

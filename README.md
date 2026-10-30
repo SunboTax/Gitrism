@@ -39,7 +39,7 @@ For Remote SSH, install Gitrism on the remote Extension Host and reload the wind
 
 A native Neovim 0.10+ commit graph keeps history, patches, blame, and author attribution in the terminal. It needs only Neovim and Git; the browser workspace is optional. See the [setup guide](docs/neovim.md).
 
-See the [0.6.1 release notes](docs/releases/v0.6.1.md) for changes and upgrade notes.
+See the [0.6.2 release notes](docs/releases/v0.6.2.md) for changes and upgrade notes.
 
 ## Quick start
 
@@ -66,7 +66,7 @@ See [feature scope](docs/feature-scope.md) for detailed behavior and limits, [lo
 
 ## Privacy and independence
 
-Git operations run locally. Git remote access occurs only when you request fetch, pull, push, or sync, using your configured Git remotes and credentials.
+Git operations run locally. Remote operations use your configured Git credentials; the editor can request GitHub sign-in or credentials when needed. See the [authentication guide](docs/authentication.md).
 
 Gitrism is independently implemented and contains no GitLens code or assets. It does not modify GitLens or bypass subscription checks. Gitrism is not affiliated with GitKraken or other Git extensions.
 

@@ -33,9 +33,9 @@ test('failed blame reads can be retried and simultaneous reads share the pending
 
 // Exercise the actual extension renderer without requiring a running VS Code host.
 function extension(repo,lineCount=20000){
-  let decorations=[];
+  let decorations=[]; const paints=[];
   const doc={uri:{scheme:'file',fsPath:'/repo/module.ts'},version:1,isDirty:false,isClosed:false,lineCount};
-  const editor={document:doc,selection:{active:{line:1}},setDecorations:(_,items)=>{decorations=items;}};
+  const editor={document:doc,selection:{active:{line:1}},setDecorations:(_,items)=>{decorations=items;paints.push(items);}};
   const settings={mode:'currentLine',maxLines:1000};
   const api={
     Range:class{constructor(sl,sc,el,ec){this.start={line:sl,character:sc};this.end={line:el,character:ec};}},
@@ -53,9 +53,9 @@ function extension(repo,lineCount=20000){
   vm.runInNewContext(fs.readFileSync(require.resolve('../out/extension'),'utf8')+`
     git = repositories[0] = globalThis.repository;
     inlineBlameEnabled = true; blameDecoration = {dispose(){}};
-    globalThis.renderer = {update:updateInlineBlame,schedule:scheduleBlame};
+    globalThis.renderer = {update:updateInlineBlame,schedule:scheduleBlame,invalidate:()=>blameCache.clear()};
   `, Object.assign(context,{repository:repo}));
-  return {editor,doc,api,settings,get decorations(){return decorations;},...context.renderer,stop:()=>context.exports.deactivate()};
+  return {editor,doc,api,settings,paints,get decorations(){return decorations;},...context.renderer,stop:()=>context.exports.deactivate()};
 }
 
 test('VS Code decorates only the cursor line even in a large file; allLines obeys its limit',async()=>{
@@ -81,5 +81,37 @@ test('VS Code drops stale line results immediately on cursor changes, dirty buff
     host.doc.isDirty=false;host.editor.selection.active.line=3;
     pending=host.update();host.api.window.activeTextEditor=undefined;finish([entry('B','Inactive editor')]);await pending;
     assert.equal(host.decorations.length,0);
+  }finally{host.stop();}
+});
+
+test('same-line refresh keeps attribution painted during reads and skips identical redraws',async()=>{
+  let reads=0,finish;
+  const repo={cwd:'/repo',blame:async()=>{reads++;return [entry('A','Stable annotation')];}};
+  const host=extension(repo);
+  try {
+    await host.update();assert.equal(host.paints.length,1);
+    host.schedule();assert.equal(host.decorations.length,1);
+    await host.update();assert.equal(host.paints.length,1);assert.equal(reads,1);
+    host.invalidate();repo.blame=()=>new Promise(resolve=>finish=resolve);
+    host.schedule();const pending=host.update();
+    assert.equal(host.paints.length,1);assert.equal(host.decorations.length,1);
+    finish([entry('A','Stable annotation')]);await pending;
+    assert.equal(host.paints.length,1);
+    host.invalidate();const changed=host.update();
+    finish([entry('B','Updated annotation')]);await changed;
+    assert.equal(host.paints.length,2);assert.equal(host.decorations.length,1);
+    assert.match(host.decorations[0].renderOptions.after.contentText,/Updated annotation/);
+    assert.ok(host.paints.every(items=>items.length===1),'No empty frame between old and new attribution');
+    host.editor.selection.active.line=2;host.schedule();assert.equal(host.decorations.length,0);
+  } finally {host.stop();}
+});
+
+test('whole-file annotations stay painted across line movement and clear immediately on edits',async()=>{
+  const host=extension({cwd:'/repo',blame:async()=>[entry('A','One'),entry('B','Two')]},10);
+  try {
+    host.settings.mode='allLines';await host.update();assert.equal(host.paints.length,1);
+    host.editor.selection.active.line=3;host.schedule();await host.update();
+    assert.equal(host.paints.length,1);assert.equal(host.decorations.length,2);
+    host.doc.isDirty=true;host.doc.version++;host.schedule();assert.equal(host.decorations.length,0);
   }finally{host.stop();}
 });

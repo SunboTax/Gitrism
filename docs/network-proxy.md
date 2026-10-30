@@ -29,3 +29,5 @@ VS Code and Cursor save the choice as `gitrism.proxy` in the current workspace's
 Only Gitrism's Git subprocesses receive these overrides. The extension does not change system proxies, Git configuration files, or other extensions. SSH tunnels use the editor/CLI's Node runtime and OpenSSH, with no extra `nc` dependency for the new setting. Existing SSH identity and host-key options remain in effect.
 
 Proxy authentication, credentials embedded in proxy URLs, and HTTPS-encrypted connections to the proxy itself are not supported. HTTPS connections to Git remotes retain normal TLS certificate checks. Git credentials, PATs, SSH keys, and SSH Agent access are still required; a proxy does not resolve missing or invalid credentials.
+
+VS Code and Cursor can request GitHub sign-in or credentials when Git helpers cannot answer. See the [authentication guide](authentication.md).

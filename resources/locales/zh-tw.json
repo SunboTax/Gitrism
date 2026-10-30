@@ -353,5 +353,7 @@
   "Proxy: {0}": "代理：{0}",
   "Network proxy saved": "網路代理已儲存",
   "Save": "儲存",
-  "Invalid SSH command": "SSH 命令無效"
+  "Invalid SSH command": "SSH 命令無效",
+  "Gitrism: Git authentication": "Gitrism：Git 身分驗證",
+  "Git operation exceeded {0} seconds. Check the remote URL, SSH keys, proxy, and network.": "Git 操作超過 {0} 秒。請檢查遠端位址、SSH 金鑰、代理與網路。"
 }

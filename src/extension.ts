@@ -11,6 +11,7 @@ import { GitrismCodeLensProvider, CodeAuthor } from "./codeLensProvider";
 import { InlineBlameCache } from "./inlineBlame";
 import { migrateLegacySettings } from "./settingsMigration";
 import { NetworkProxy, defaultNetworkProxy } from "./networkProxy";
+import { editorGitAuthentication } from "./editorAuthentication";
 
 let git: GitService | undefined;
 let output: vscode.OutputChannel | undefined;
@@ -29,6 +30,7 @@ let repositoryRequest = 0;
 let codeLens: GitrismCodeLensProvider | undefined;
 const blameCache = new InlineBlameCache();
 let blameTarget: { editor: vscode.TextEditor; line: number; version: number } | undefined;
+const blamePainted = new WeakMap<vscode.TextEditor, { line: number; version: number; allLines: boolean; signature: string }>();
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   setLanguage(vscode.env.language);
@@ -147,7 +149,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (event.affectsConfiguration("gitrism.inlineBlame")) {
         blameCache.clear();
         inlineBlameEnabled = vscode.workspace.getConfiguration("gitrism.inlineBlame").get("enabled", true);
-        vscode.window.visibleTextEditors.forEach(editor => editor.setDecorations(blameDecoration!, []));
+        vscode.window.visibleTextEditors.forEach(clearInlineBlame);
         scheduleBlame();
       }
       if (event.affectsConfiguration("gitrism.sshProxy")) void initializeWorkspace(context, true);
@@ -181,7 +183,7 @@ async function discoverRepositories(): Promise<void> {
   const candidates = [...(vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath) || []), ...(gitApi?.getAPI(1).repositories.map(repo => repo.rootUri.fsPath) || [])];
   const results = await Promise.allSettled(candidates.map(async candidate => new GitService(candidate, proxy, network).repositoryRoot()));
   for (const result of results) if (result.status === "fulfilled") roots.add(result.value);
-  repositories = [...roots].map(root => new GitService(root, proxy, network));
+  repositories = [...roots].map(root => new GitService(root, proxy, network, editorGitAuthentication));
   codeLens?.invalidate();
 }
 
@@ -229,9 +231,19 @@ async function refreshWorkspace(): Promise<void> {
 function scheduleBlame(): void {
   clearTimeout(blameTimer);
   blameRequest++; // Invalidate in-flight reads as soon as the cursor/document changes.
-  blameTarget = undefined;
-  if (blameDecoration) vscode.window.visibleTextEditors.forEach(editor => editor.setDecorations(blameDecoration!, []));
+  const active = vscode.window.activeTextEditor;
+  blameTarget = active ? { editor: active, line: active.selection.active.line, version: active.document.version } : undefined;
+  // Keep a valid annotation painted while its replacement is being read. Repeated
+  // refreshes and horizontal cursor motion must never clear/reinsert the text.
+  for (const editor of vscode.window.visibleTextEditors) {
+    const painted = blamePainted.get(editor);
+    if (editor !== active || editor.document.isDirty || painted && (painted.version !== editor.document.version || !painted.allLines && painted.line !== editor.selection.active.line)) clearInlineBlame(editor);
+  }
   if (inlineBlameEnabled) blameTimer = setTimeout(() => { void updateInlineBlame(); }, 180);
+}
+
+function clearInlineBlame(editor: vscode.TextEditor): void {
+  if (blameDecoration && blamePainted.delete(editor)) editor.setDecorations(blameDecoration, []);
 }
 
 async function ensureWorkspace(context: vscode.ExtensionContext): Promise<GitrismTreeProvider | undefined> {
@@ -363,7 +375,7 @@ async function toggleBlame(): Promise<void> {
     vscode.ConfigurationTarget.Workspace
   );
   if (!inlineBlameEnabled) {
-    vscode.window.visibleTextEditors.forEach((editor) => editor.setDecorations(blameDecoration!, []));
+    vscode.window.visibleTextEditors.forEach(clearInlineBlame);
   } else {
     await updateInlineBlame();
   }
@@ -377,19 +389,21 @@ async function updateInlineBlame(): Promise<void> {
   const line = editor.selection.active.line;
   const version = editor.document.version;
   blameTarget = { editor, line, version };
-  if (editor.document.isDirty) { editor.setDecorations(blameDecoration, []); return; }
+  if (editor.document.isDirty) { clearInlineBlame(editor); return; }
   const repository = repositories.filter(repo => editor.document.uri.fsPath.startsWith(repo.cwd + path.sep)).sort((a,b) => b.cwd.length - a.cwd.length)[0];
-  if (!repository) { editor.setDecorations(blameDecoration, []); return; }
+  if (!repository) { clearInlineBlame(editor); return; }
   const maxLines = vscode.workspace.getConfiguration("gitrism.inlineBlame").get("maxLines", 1000);
   const allLines = vscode.workspace.getConfiguration("gitrism.inlineBlame").get<string>("mode", "currentLine") === "allLines";
   if (allLines && editor.document.lineCount > maxLines) {
-    editor.setDecorations(blameDecoration, []);
+    clearInlineBlame(editor);
     return;
   }
   try {
     const relative = path.relative(repository.cwd, editor.document.uri.fsPath);
     const lines = await blameCache.query(repository, relative, version, line, allLines);
     if (request !== blameRequest || vscode.window.activeTextEditor !== editor || editor.document.isClosed || editor.document.version !== version || editor.document.isDirty || editor.selection.active.line !== line || !inlineBlameEnabled) return;
+    const signature = JSON.stringify([version, allLines, lines]);
+    if (blamePainted.get(editor)?.signature === signature) return;
     const decorations: vscode.DecorationOptions[] = [];
     lines.forEach(({ entry: item, line: index }) => {
       if (index >= editor.document.lineCount) return;
@@ -405,8 +419,10 @@ async function updateInlineBlame(): Promise<void> {
         renderOptions: { after: { contentText: uncommitted ? t(" Uncommitted") : ` ${item.author} · ${formatDate(item.date)} · ${item.hash.replace(/^\^/, "").slice(0,8)} · ${item.summary}` } } });
     });
     editor.setDecorations(blameDecoration, decorations);
+    if (decorations.length) blamePainted.set(editor, { line, version, allLines, signature });
+    else blamePainted.delete(editor);
   } catch {
-    if (request === blameRequest) editor.setDecorations(blameDecoration, []);
+    if (request === blameRequest) clearInlineBlame(editor);
   }
 }
 

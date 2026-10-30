@@ -70,8 +70,20 @@ exports.run = async () => {
         checks.push('workspace proxy setting persisted');
       } else if (request.type === 'source') {
         const shown = await vscode.window.showTextDocument(document, { preview: false });
-        shown.selection = new vscode.Selection(request.line, 0, request.line, 0);
+        shown.selection = new vscode.Selection(request.line, request.character || 0, request.line, request.character || 0);
         result = true;
+      } else if (request.type === 'refreshAttribution') {
+        await vscode.commands.executeCommand('gitrism.refresh'); result = true;
+      } else if (request.type === 'authProbe') {
+        const { editorGitAuthentication } = require(path.join(extension.extensionPath, 'out/editorAuthentication'));
+        const run = require('node:util').promisify(require('node:child_process').execFile);
+        await editorGitAuthentication(async env => {
+          const user = await run(env.GIT_ASKPASS, ["Username for 'https://git.example.invalid': "], { env: { ...process.env, ...env } });
+          assert.equal(user.stdout.trim(), 'fixture-user');
+          const password = await run(env.GIT_ASKPASS, ["Password for 'https://fixture-user@git.example.invalid': "], { env: { ...process.env, ...env } });
+          assert.equal(password.stdout.trim(), 'fixture-token');
+        });
+        checks.push('native username/password prompts and actual Electron AskPass helper');result = true;
       } else if (request.type === 'diff') {
         let tab;
         for (let i = 0; i < 200; i++) {

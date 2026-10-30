@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2
+
+- Preserve Git credential helpers, inherited AskPass, and credential-manager interaction instead of disabling them.
+- Add operation-scoped editor authentication for fetch, pull, push, and sync: GitHub sign-in through the editor's public authentication API and masked credential prompts for other hosts. Keep credentials out of Gitrism settings and temporary files.
+- Replace stale inherited editor AskPass sockets with a fresh channel for each editor operation; allow five minutes for remote operations including sign-in.
+- Keep current-line attribution visible during same-line repository refreshes, skip identical decoration updates, and retain immediate clearing when changing lines or editing the file.
+
 ## 0.6.1
 
 - Add visible HTTP/SOCKS5 proxy controls with follow-system, custom, and direct modes for fetch, pull, push, and sync.

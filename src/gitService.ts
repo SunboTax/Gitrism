@@ -7,6 +7,7 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
 import { NetworkProxy, defaultNetworkProxy, normalizeNetworkProxy, sshProxyCommand } from "./networkProxy";
+import { GitNetworkAuthentication } from "./gitAuthentication";
 const execFileAsync = promisify(execFile);
 export interface RepositoryStatus { branch: string; upstream?: string; ahead: number; behind: number; staged: number; changed: number; untracked: number; conflicted: number; files: WorkingFile[] }
 export interface WorkingFile { path: string; oldPath?: string; index: string; working: string; conflict: boolean }
@@ -83,22 +84,22 @@ function unquoteGitValue(value: string): string {
 export class GitService {
   private worktreeNullOutput = true;
   private networkProxy: NetworkProxy;
-  public constructor(public readonly cwd: string, private readonly sshProxy?: string, proxy: NetworkProxy = defaultNetworkProxy) { this.networkProxy = normalizeNetworkProxy(proxy); }
+  public constructor(public readonly cwd: string, private readonly sshProxy?: string, proxy: NetworkProxy = defaultNetworkProxy, private readonly authentication?: GitNetworkAuthentication) { this.networkProxy = normalizeNetworkProxy(proxy); }
   public getNetworkProxy(): NetworkProxy { return { ...this.networkProxy }; }
   public getLegacySshProxy(): string { return this.sshProxy || ""; }
   public setNetworkProxy(proxy: NetworkProxy): void { this.networkProxy = normalizeNetworkProxy(proxy); }
-  private async run(args: string[], literalPaths = false, extraEnv: Record<string, string> = {}): Promise<string> {
+  private async run(args: string[], literalPaths = false, extraEnv: Record<string, string> = {}, timeout = 60_000): Promise<string> {
     try {
       return (await execFileAsync("git", ["--no-pager", ...(literalPaths ? ["--literal-pathspecs"] : []), ...args], {
-        cwd: this.cwd, maxBuffer: 16 * 1024 * 1024, windowsHide: true, timeout: 60_000, killSignal: "SIGTERM",
-        env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GCM_INTERACTIVE: "Never", GIT_ASKPASS: "", SSH_ASKPASS: "",
+        cwd: this.cwd, maxBuffer: 16 * 1024 * 1024, windowsHide: true, timeout, killSignal: "SIGTERM",
+        env: { ...process.env, GIT_TERMINAL_PROMPT: "0",
           ...extraEnv }
       })).stdout;
     } catch (error) {
       if (error instanceof GitError) throw error;
       const e = error as { code?: string | number; killed?: boolean; stderr?: string; message?: string };
       throw new GitError(t("Git operation failed"), e.code === "ETIMEDOUT" || e.killed
-        ? t("Git operation exceeded 60 seconds. Check the remote URL, SSH keys, proxy, and network.") : e.stderr || e.message, e.code);
+        ? t("Git operation exceeded {0} seconds. Check the remote URL, SSH keys, proxy, and network.", timeout / 1000) : e.stderr || e.message, e.code);
     }
   }
   private async runNetwork(args: string[]): Promise<void> {
@@ -122,7 +123,9 @@ export class GitService {
         if (proxy.mode === "custom") { env.GITRISM_PROXY_URL = proxy.url; env.ELECTRON_RUN_AS_NODE = "1"; }
       }
     }
-    await this.run([...config, ...args], false, env);
+    if (this.authentication) {
+      await this.authentication(authEnv => this.run([...config, ...args], false, { ...env, ...authEnv }, 300_000));
+    } else await this.run([...config, ...args], false, env);
   }
   public filePath(file: string): string {
     if (!file || path.isAbsolute(file) || file.includes("\0") || /(^|\/)\.\.($|\/)/.test(file)) throw new GitError(t("Invalid repository file path"));

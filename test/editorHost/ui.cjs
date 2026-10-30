@@ -87,6 +87,30 @@ exports.verify = async function(port, state, output) {
     await request('source', { line: 0 }); await editor.until(annotation('Ava Lin'));
     assert.equal(await editor.evaluate(annotation('Leo Park')), false);
     checks.push('cursor-line attribution for two authors in one function');
+    await editor.evaluate(`window.gitrismAttributionSamples=[];window.gitrismAttributionTimer=setInterval(()=>window.gitrismAttributionSamples.push(${annotation('Ava Lin')}),16)`);
+    try {
+      for(let i=0;i<3;i++){
+        await request('refreshAttribution');
+        await request('source',{line:0,character:i+1});
+        await pause(700);
+      }
+      const samples=await editor.evaluate('window.gitrismAttributionSamples');
+      assert.ok(samples.length>100,'Observe multiple cursor blink cycles');
+      assert.ok(samples.every(Boolean),'Attribution must stay visible during refresh and horizontal cursor motion');
+      checks.push('steady attribution across refreshes, horizontal motion and cursor blink cycles');
+    } finally {await editor.evaluate('clearInterval(window.gitrismAttributionTimer)');}
+    const authentication=request('authProbe');
+    authentication.catch(()=>{});
+    await editor.until('document.querySelector(".quick-input-widget input.input")?.type === "text" && document.querySelector(".quick-input-widget")?.textContent.includes("Git authentication")');
+    await editor.call('Input.insertText',{text:'fixture-user'});
+    await editor.call('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+    await editor.call('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+    await editor.until('document.querySelector(".quick-input-widget input.input")?.type === "password"');
+    await editor.call('Input.insertText',{text:'fixture-token'});
+    await editor.call('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+    await editor.call('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+    await authentication;
+    checks.push('native authentication UI with masked secret input');
     await request('panel');
     ui = await graph();
     checks.push('bottom panel command');

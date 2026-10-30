@@ -23,7 +23,7 @@ This document describes actual behavior in Gitrism 0.6.1. It does not claim comp
 | Blame and line history | Current-line annotations enabled by default, with author/date/commit/message, hover details, commit links, and selected-line history; optional whole-file mode | Current-line mode queries only the cursor line; whole-file annotations have a configurable file-length limit; unsaved annotations are cleared |
 | Multiple repositories | Workspace roots and nested repositories discovered by built-in Git | No independent recursive filesystem scan |
 | Network proxy | Toolbar controls for HTTP/SOCKS5, inherited settings, or direct connections; HTTPS and OpenSSH transport | Existing reachable proxy required; editor workspace or browser service-session scope; no proxy authentication; see the [guide](network-proxy.md) |
-| Remote operations | Fetch and prune, fast-forward pull, push, and sync | Existing credentials; noninteractive operations; 60-second timeout |
+| Remote operations | Fetch and prune, fast-forward pull, push, and sync; Git helpers and editor authentication | Five-minute editor timeout including sign-in; standalone operations use existing credentials and a 60-second timeout; see the [guide](authentication.md) |
 
 ## Neovim
 
